@@ -1,0 +1,92 @@
+﻿
+@{
+    ViewBag.Title = "ExistStock";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGridNonExpandable('NonExItems');
+        setAddBtn('PrintRpt', 'ltr', 100, 30);
+        $('#PrintRpt').click(function () {
+            var url = '/Areas/IMS/Reports/ExistStockReport.aspx';
+            window.open(url, "_blank")
+
+        })
+
+    });
+    function setGridNonExpandable(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: true,
+                editmode: 'click',
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                selectionmode: 'checkbox',
+                columns: [
+                        { text: 'اسم جنس', dataField: 'CIName', width: '25%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'واحد جنس', dataField: 'CIUnit', width: '22%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'مقدار موجود', dataField: 'OIQuantity', width: '25%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'قیمت', dataField: 'TotalPrice', width: '25%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+
+                ]
+
+            });
+        fillGridNonExpandable();
+    }
+    function fillGridNonExpandable() {
+        //alert(MID)
+        //alert(BookedGuest)
+        var URL = '/IMS/Booking/GetExistStock';
+        var source =
+        {
+            datatype: "json",
+            datafields: [
+                            { name: 'CIID', type: 'number' },
+                            { name: 'CIName', type: 'string' },
+                            { name: 'CIUnit', type: 'string' },
+                            { name: 'OIQuantity', type: 'number' },
+                            { name: 'TotalPrice', type: 'number' },
+                            { name: 'Remarks', type: 'string' },
+            ],
+            cache: false,
+            url: URL,
+            root: 'Rows'
+        };
+
+        var dataadapter = new $.jqx.dataAdapter(source, {
+            loadError: function (xhr, status, error) {
+                console.log(error);
+            }
+        }
+        );
+
+        $('#NonExItems').jqxGrid(
+        {
+            source: dataadapter
+        });
+    }
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        اجناس گدام
+        <input type="button" class="btn-success pull-left fonclass" id="PrintRpt" value="پرنت راپور" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="NonExItems"></div>
+        </div>
+    </div>
+</div>

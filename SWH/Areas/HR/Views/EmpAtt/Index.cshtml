@@ -1,0 +1,322 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        
+        setCombo('#Comb_EmployeeName', '@Url.Action("GetUsers", "UserPrepaid")', 'USERID', 'Name', 30, 200, 0);
+        setCombo('#Comb_MonthYear', '/IMS/Booking/GetMonth/', 'MonthYearVal', 'MonthYearName', 30, 100, 0);
+        setAddBtn('ShowDetail', 'ltr', 100, 30);
+        setGrid('grdAttendanceDetail');
+        $("#ShowDetail").click(function () {
+            var item = $("#Comb_EmployeeName").jqxComboBox('getSelectedItem');
+            var USERID = item.value;
+            var yitems = $("#Comb_MonthYear").jqxComboBox('getSelectedItem');
+            var YearVal = yitems.value;
+            fillGridAtt(USERID, YearVal);
+            fillGridEx(USERID, YearVal);
+        })
+        setGridEx('grdExceptionDetail');
+        makeContextMenu('CMenu', 'grdAttendanceDetail', 200,60);
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#grdAttendanceDetail").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'درخواست استثناء ?') {
+                var dataRecord = $("#grdAttendanceDetail").jqxGrid('getrowdata', rowindex);
+                    //if(dataRecord.AttStatus == "?") {
+
+                        $('#CheckinoutID').val(dataRecord.CheckinoutID);
+
+                        var TimeIn  = (dataRecord.Timein == null) ? '00:00:00' : moment(dataRecord.Timein).format('HH:mm:ss');
+                        var TimeOut = (dataRecord.TimeOut == null ) ? '00:00:00' : moment(dataRecord.TimeOut).format('HH:mm:ss');
+                        $('#ExceptionDate').val(moment(moment(dataRecord.SignDate).add(0,'days')).format('YYYY-MM-DD'));
+                        $('#ETimeIN').val(moment(moment(dataRecord.SignDate).format('YYYY-MM-DD') + ' ' + TimeIn).format('YYYY-MM-DD HH:mm:ss'));
+                        $('#ETimeOut').val(moment(moment(dataRecord.SignDate).format('YYYY-MM-DD') + ' ' + TimeOut).format('YYYY-MM-DD HH:mm:ss'));
+                        $('#Justification').val('');
+                        $("#USERID").val(dataRecord.USERID)
+                        $('#myModal').modal('show');
+                   // } else{
+                     //   toastr["error"]("قابل اجرا نمیباشد"+dataRecord.CheckinoutID);
+                    //}
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if (varMenuItem == "جدید") {
+                AddBClick();
+            }
+        });
+        setInputsDr(["Justification"], 300, 30);
+        setSubmitBtn("Save", 150, 30);
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    $.ajax(
+             {
+                 url: '/HR/EmpAtt/RequestException',
+                 type: 'post',
+                 data: $('#frmMain').serialize(),
+                 success: function (result) {
+                     toastr["success"]("معلومات موفقانه درج سیستم گردید");
+                     $('#grdAttendanceDetail').jqxGrid('updatebounddata', 'data');
+                     $('#grdExceptionDetail').jqxGrid('updatebounddata', 'data');
+                     $('#myModal').modal('hide');
+                 }
+             });
+
+                }
+            }
+            $('#frmMain').jqxValidator('validate', validationResult)
+        });
+        $('#frmMain').jqxValidator({
+            hintType: 'label',
+            animationDuration: 0,
+            rtl: true,
+            rules: [
+            { input: '#Justification', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' }
+            ], theme: 'darkblue'
+        });
+        @*
+        setCombo('#Comb_USERID', '@Url.Action("GetUsers","UserPrepaid")', 'USERID', 'Name', 30, 300, 1);
+        setCombo('#Comb_LeaveTypeID', '@Url.Action("GetLeaveType")', 'LeaveTypeID', 'LeaveTypeName', 30, 300, 1);
+        setCombo('#Comb_BackupUser', '@Url.Action("GetUsers", "UserPrepaid")', 'USERID', 'Name', 30, 300, 1);
+        makeDates(["D_FromDate", "D_ToDate"], 'frmMain', 'rtl')
+        makeCombHidden(["Comb_USERID", "Comb_LeaveTypeID","Comb_BackupUser"], 'frmMain');
+        setCancelBtn("Cancel", 90, 30);
+        HideModal('close', 'Cancel', 'frmMain', 'myModal');
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        setAddBtn('AddNew', 'ltr', 150, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })*@
+
+
+
+    });
+    function AddBClick()
+    {
+        clearInputs(["LeaveID", "USERID", "FromDate","D_FromDate", "ToDate","D_ToDate", "Justification", "BackupUser", "LeaveTypeID","Remarks"]);
+        $("#Comb_USERID").jqxComboBox('clearSelection');
+        $("#Comb_BackupUser").jqxComboBox('clearSelection');
+        $("#Comb_LeaveTypeID").jqxComboBox('clearSelection');
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: false,
+                //pagermode: 'simple',
+                //showfilterrow: true,
+                filterable: false,
+                editable: false,
+                height: '250px',
+                autoheight: false,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+					{ text: 'تاریخ', datafield: 'SignDateDr', align: 'right', width: '130px', cellclassname: cellclassname, cellsalign: 'center' },
+					{ text: 'وقت آمد', datafield: 'Timein', align: 'right', width: '100px', cellsformat: 'hh:mm tt', cellclassname: cellclassname, cellsalign: 'center' },
+					{ text: 'وقت رفت', datafield: 'TimeOut', align: 'right', width: '100px', cellsformat: 'hh:mm tt', cellclassname: cellclassname, cellsalign: 'center' },
+					{ text: 'حالت', datafield: 'AttStatus', align: 'right', width: '100px', cellclassname: cellclassname, cellsalign: 'center' },
+                    { text: 'کسرات', datafield: 'AbsentinMin', align: 'right', cellclassname: cellclassname, cellsalign: 'center' },
+
+                ]
+
+            });
+       
+    }
+    function fillGridAtt(varUSERID,varMONTHYEARVal)
+    {
+        var datafields = [
+                       { name: 'SignDate', type: 'date', format: "dd-MMM-yyyy" },
+                       //{ name: 'ToDate', type: 'date', format: "dd-MMM-yyyy" },
+                       { name: 'Timein', type: 'date', format: 'h:mm tt' },
+                       { name: 'TimeOut', type: 'date', format: 'h:mm tt' },
+                       { name: 'SignDateDr' },
+                       { name: 'USERID' },
+                       { name: 'AttStatus' },
+                       { name: 'CheckinoutID' },
+                       { name: 'AbsentMin' },
+                       //{ name:'BackupUser'},
+                       //{ name:'Justification'},
+                       //{ name:'LeaveTypeID'},
+                       //{ name:'Remarks'},
+                       //{ name:'LeaveTypeName'},
+                       //{ name:'Abbreviation'},
+                       //{ name:'PositionName'},
+                       //{ name:'Name'},
+                       //{ name:'FName'},
+                       //{ name:'BackupEmployee'},
+
+        ];
+
+        fillGrid(datafields, 'grdAttendanceDetail', '/HR/EmpAtt/GetAttData?USERID=' + varUSERID + '&&MonthYear=' + varMONTHYEARVal);
+    }
+    
+    function setGridEx(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: false,
+                showfilterrow: false,
+                filterable: false,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'تاریخ', dataField: 'ExceptionDateDr', width: '25%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'دلیل ', dataField: 'Justification', width: '45%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'وقت امد', dataField: 'ETimeIN', cellsformat: 'h:mm tt', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'وقت رفت ', dataField: 'ETimeOut', cellsformat: 'h:mm tt', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                ]
+
+            });
+
+    }
+    function fillGridEx(varUSERID,varYearVal)
+    {
+        var datafields = [
+                        { name:'ExceptionID'},
+                        { name:'USERID'},
+                        { name:'ExceptionDate'},
+                        { name:'ExceptionDateDr'},
+                        { name:'ETimeIN', type: 'date', format: 'h:mm tt' },
+                        { name:'ETimeOut',type: 'date', format: 'h:mm tt' },
+                        { name:'AbsentMin'},
+                        { name:'Justification'},
+                        { name:'CheckinoutID'},
+                        
+
+        ];
+
+        fillGrid(datafields, 'grdExceptionDetail', '/HR/EmpAtt/GetExceptions?USERID=' + varUSERID + '&&MonthYear=' + varYearVal);
+    }
+</script>
+<table width="100%" border="0" align="right">
+    <tr>
+        <td align="right">
+            <table border="0" cellspacing="1">
+                <tr>
+                    <td style="padding-left:5px"><input type="button" class="btn-success pull-left fonclass" id="ShowDetail" value="جستجو حاضری" /></td>
+                    <td style="padding-left:5px"> <input type="button" class="btn-mini btn-primary" id="addAttendanceShow" value="Add Attendance" style="display:none" /> </td>
+                    <td><div id='Comb_MonthYear'></div></td>
+                    <td><b>برج</b></td>
+                    <td><div id='Comb_EmployeeName'></div></td>
+                    <td><b>اسم کارمند</b></td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+<table width="100%" border="0">
+    <tr>
+        <td align="right"><b>مخففات</b></td>
+        <td align="right"><b>تفصیلات حاضری</b></td>
+    </tr>
+    <tr>
+
+        <td valign="top">
+            <table style="font-size:80%;" class="table table-bordered">
+                <tr>
+                    <td class="grayClass">&nbsp; W: رخصتی هفته &nbsp;</td>
+                    <td class="redClass">&nbsp; کسرات &nbsp;</td>
+                    <td>&nbsp; ?:استثنا &nbsp;</td>
+                    <td>&nbsp; P: حاضری &nbsp;</td>
+                    <td>&nbsp; M: سفر &nbsp;</td>
+                </tr>
+                <tr>
+                    <td>&nbsp; L: رخصتی تفریحی &nbsp;</td>
+                    <td>&nbsp; SL: رخصتی مریضی &nbsp;</td>
+                    <td>&nbsp; EL: رخصتی ضروری &nbsp;</td>
+                    <td>&nbsp; PH: رخصتی عمومی &nbsp;</td>
+                    <td>&nbsp; A: غیرحاضر &nbsp;</td>
+                </tr>
+
+            </table>
+        </td>
+        <td style="width:60%">
+            <div id="grdAttendanceDetail"></div>
+        </td>
+    </tr>
+    <tr>
+        <td colspan="2" align="right"><b>تفصیلات استثناء</b></td>
+    </tr>
+    <tr>
+        <td colspan="2">
+            <div id="grdExceptionDetail"></div>
+        </td>
+    </tr>
+</table>
+<div id='CMenu'>
+    <ul dir="rtl">
+        <li id="Insert">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">درخواست استثناء ?</span>
+        </li>
+        @*<li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">اضافه نمودن حاضری A</span>
+        </li>*@
+        
+    </ul>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close">&times;</button>
+                <h4 class="modal-title">درخواست استثناء حاضری</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmMain">
+
+                    <input type="hidden" id="USERID" name="USERID" />
+                    <input type="hidden" id="CheckinoutID" name="CheckinoutID" />
+                    <input type="hidden" id="ExceptionDate" name="ExceptionDate" />
+                    <input type="hidden" id="ETimeIN" name="ETimeIN" />
+                    <input type="hidden" id="ETimeOut" name="ETimeOut" />
+                    <table border="0" width="100%" dir="rtl" class="table">
+                        <tr>
+                            <th><div><b>توضیح استثناء: </b></div></th>
+                            <td><input type="text" class="fonclass" id='Justification' name='Justification' /></td>
+                        </tr>
+                        <tr>
+                            <td style="padding-top: 10px;" align="left">
+                                <button id="Save" type="button" class="fonclass btn-primary">درخواست استثناء</button>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+

@@ -1,0 +1,165 @@
+﻿@font-face {
+        font-family: 'IRANSans';
+        src:url('/fonts/IRANSans-web.woff');
+    }
+.blackfonts tr td b{
+    color:black;
+    font-weight:bolder;
+
+}
+   body, p {
+        font-family: 'IRANSans' !important;
+    }
+
+    .fonclass {
+        font-family: 'IRANSans' !important;
+        /*font-size: 15px;*/
+    }
+    .jqx-listitem-state-normal
+    {
+        font-family: 'IRANSans' !important;
+
+    }
+    .jqx-grid-column-header
+    {
+        font-family: 'IRANSans' !important;
+    }
+
+    .blackfonts tr td {
+        text-align: right;
+    }
+
+        .blackfonts tr td b {
+            color: black;
+            font-weight: bolder;
+            font-family: 'IRANSans' !important;
+        }
+
+.blackfonts tr td{
+    text-align:left;
+}
+
+    .redClass {
+        background-color: #F8C0C0;
+    }
+
+    .ApprovedClass {
+        background-color: #b3e0ff;
+    }
+
+    .greenClass {
+        background-color: Green;
+    }
+
+    .blueClass {
+        background-color: Blue;
+        color:white;
+    }
+
+    .grayClass {
+        background-color: #c1c1c1;
+    }
+
+    .btn-danger {
+        color: #fff;
+        background-color: #d9534f;
+        border-color: #d43f3a;
+    }
+
+        .btn-danger.focus, .btn-danger:focus {
+            color: #fff;
+            background-color: #c9302c;
+            border-color: #761c19;
+        }
+
+        .btn-danger:hover {
+            color: #fff;
+            background-color: #c9302c;
+            border-color: #ac2925;
+        }
+
+    .btn-success {
+        color: #fff;
+        background-color: #5cb85c;
+        border-color: #4cae4c;
+    }
+
+    .DetailItems {
+        color: black;
+        font-weight: bold;
+    }
+
+    .tableDetail tr td {
+        text-align: left;
+    }
+
+    .btn-success.focus, .btn-success:focus {
+        color: #fff;
+        background-color: #449d44;
+        border-color: #255625;
+    }
+
+    .btn-success:hover {
+        color: #fff;
+        background: -webkit-gradient(linear, 0 0, 0 100%, from(#398439), to(#398439));
+        background: -moz-linear-gradient(100% 100% 90deg, #398439, #398439);
+        background: linear-gradient(top, #398439 0%,#398439 100%);
+    }
+
+    .btn-success {
+        color: #fff;
+        text-shadow: 0 1px 1px #449d44;
+        background: -webkit-gradient(linear, 0 0, 0 100%, from(#449d44), to(#5cb85c));
+        background: -moz-linear-gradient(100% 100% 90deg, #449d44, #5cb85c);
+        background: linear-gradient(top, #449d44 0%,#5cb85c 100%);
+        border-color: #398439;
+        zoom: 1;
+        -webkit-box-shadow: inset 0 1px 0 #449d44, 0 1px 1px rgba(0, 0, 0, 0.05);
+        -moz-box-shadow: inset 0 1px 0 #449d44, 0 1px 1px rgba(0, 0, 0, 0.05);
+        box-shadow: inset 0 1px 0 #449d44, 0 1px 1px rgba(0, 0, 0, 0.05);
+    }
+
+    .Denomination, .DenominationT {
+        width: 150px;
+        height: 30px;
+        border: 1px solid darkblue;
+        font-weight: bold;
+        color: black;
+        border-radius: 5px 5px 5px 5px;
+    }
+
+    .Count, .CountT {
+        width: 150px;
+        height: 30px;
+        border: 1px solid darkblue;
+        color: black;
+        font-weight: bold;
+        border-radius: 5px 5px 5px 5px;
+    }
+
+    .Total, .TotalT {
+        width: 150px;
+        height: 30px;
+        border: 1px solid darkblue;
+        color: black;
+        font-weight: bold;
+        border-radius: 5px 5px 5px 5px;
+    }
+       .readonl {
+        background-color: #999;
+        cursor: not-allowed;
+    }
+           .nodisplay{
+        display:none;
+    }
+.btn-danger.focus, .btn-danger:focus {
+            color: #fff;
+            background-color: #c9302c;
+            border-color: #761c19;
+        }
+
+        .btn-danger:hover {
+            color: #fff;
+            background-color: #c9302c;
+            border-color: #ac2925;
+        }

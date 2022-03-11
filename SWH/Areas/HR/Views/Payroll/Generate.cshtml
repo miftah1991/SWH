@@ -1,0 +1,155 @@
+﻿
+@{
+    ViewBag.Title = "Generate";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGrid('Payroll');
+        setCombo('#Comb_MonthID', '/HR/Payroll/GetMonth/', 'MonthYearVal', 'MonthYearName', 30, 100, 0);
+        $("#ShowDetails").click(function () {
+            var yitems = $("#Comb_MonthID").jqxComboBox('getSelectedItem');
+            var YearVal = yitems.value;
+            fillGridPayroll(YearVal);
+        })
+       
+        setAddBtn('ShowDetails', 'ltr', 150, 30);
+        setSubmitBtn("Save", 200, 30);
+
+
+
+
+
+
+
+
+    });
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                editable:true, 
+                columns: [
+                        { text: 'اسم', dataField: 'Name',pinned:true, width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'ولد', dataField: 'FName', pinned: true, width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'وظیفه', dataField: 'PositionName', pinned: true, width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'معاش', dataField: 'Salary', width: '8%', cellsformat: 'd', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: '75%', dataField: 'Per75', width: '6%', cellsformat: 'd', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: '25%', dataField: 'Per25', cellsformat: 'd', width: '6%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'تعدادروز', dataField: 'Days', cellsformat: 'd', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'حاضر', dataField: 'Present', cellsformat: 'd', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'رخصتی', dataField: 'Leave', cellsformat: 'd', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'غیرحاضرکامل', dataField: 'Absent', cellsformat: 'd', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'غیرحاضر', dataField: 'AttAbsent', cellsformat: 'd', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'معاش فی روز', dataField: 'SalaryPerDay', cellsformat: 'd', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        { text: 'کسرات غیرحاضری', dataField: 'AbsentDeduction', cellsformat: 'd', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:true },
+                        { text: 'کسرات', dataField: 'LateDeduction', cellsformat: 'd', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:true },
+                        { text: 'پیش پرداخت', dataField: 'PreBalance', cellsformat: 'd', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:true },
+                        { text: 'مالیه', dataField: 'Per2Tax', cellsformat: 'd', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        //{ text: 'قابل تادیه', dataField: 'Balance', cellsformat: 'd', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname ,editable:false },
+                        //{ text: 'پیش پرداخت', datavField: 'PreBalance', cellsformat: 'd', width: '10%', cellsalign: 'center', align: 'right', cellclassname: cellclassname },
+                        //{ text: 'مالیه', datavField: 'Per2Tax', cellsformat: 'd', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        //{ text: 'قابل تادیه', datavField: 'Balance', cellsformat: 'd', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                    {
+                        text: 'Balance', editable: false, datafield: 'Balance',
+                        cellsrenderer: function (index, datafield, value, defaultvalue, column, rowdata) {
+                            var total = parseFloat(rowdata.Salary) - parseFloat(rowdata.Per25)-
+                                        parseFloat(rowdata.AbsentDeduction) - parseFloat(rowdata.LateDeduction)-
+                                        parseFloat(rowdata.PreBalance) - parseFloat(rowdata.Per2Tax)
+                            ;
+                            if(total<0){total =0}
+                            return "<div style='margin: 4px; color:red' class='jqx-center-align'>" + total + "</div>";
+                        }
+                    },
+
+                ]
+
+            });
+
+    }
+    function fillGridPayroll(varMonthYear) {
+        var datafields = [
+                        { name: 'Name'},
+                        { name: 'FName'},
+                        { name: 'PositionName'},
+                        { name: 'USERID', type: 'number' },
+                        { name: 'AttAbsent', type: 'number' },
+                        { name: 'Amount', type: 'number' },
+                        { name: 'DeductAmount', type: 'number' },
+                        { name: 'PrePaidDeductd', type: 'number' },
+                        { name: 'Days', type: 'number' },
+                        { name: 'Present', type: 'number' },
+                        { name: 'Absent', type: 'number' },
+                        { name: 'Leave', type: 'number' },
+                        { name: 'Salary', type: 'number' },
+                        { name: 'SalaryPerDay', type: 'number' },
+                        { name: 'AbsentDeduction', type: 'number' },
+                        { name: 'LateDeduction', type: 'number' },
+                        { name: 'Per75', type: 'number' },
+                        { name: 'Per25', type: 'number' },
+                        { name: 'Per2Tax', type: 'number' },
+                        { name: 'PreBalance', type: 'number' },
+                        { name: 'Balance', type: 'number' },
+                       
+                        //{ name: 'Date', type: 'date', format: "dd-MMM-yyyy" },
+
+
+        ];
+
+        fillGrid(datafields, 'Payroll', '/HR/Payroll/GetPayrollDetail?MonthYear=' + varMonthYear);
+    }
+</script>
+<table class="table" width="98%" dir="rtl">
+    <tr>
+        <td>
+            <table dir="rtl" class="table">
+                <tr>
+                    <td><strong><b>برج</b></strong></td>
+                    <td><div id="Comb_MonthID"></div></td>
+                    <td><input type="button" id="ShowDetails" name="ShowDetails" value="محاسبه معاشات" class="btn-success pull-left fonclass" /></td>
+
+                </tr>
+            </table>
+
+        </td>
+        <td width="50%">&nbsp;</td>
+    </tr>
+</table>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+       تفصیلات
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="Payroll"></div>
+        </div>
+    </div>
+</div>
+<div style="text-align:center">
+    <table class="table table-bordered" width="10%" align="center">
+        <tr>
+            <td>
+                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+            </td>
+            <td>@*<button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>*@</td>
+        </tr>
+    </table>
+</div>
+

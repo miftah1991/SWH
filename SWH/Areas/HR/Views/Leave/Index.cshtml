@@ -1,0 +1,410 @@
+﻿@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGrid('Leave');
+        setGridSum('LeaveBalanceGrid');
+        setInputsDr(["Justification", "Remarks", "D_FromDate", "D_ToDate"], 300, 30);
+        setCombo('#Comb_USERID', '@Url.Action("GetUsers","UserPrepaid")', 'USERID', 'Name', 30, 300, 0);
+        setCombo('#Comb_LeaveTypeID', '@Url.Action("GetLeaveType")', 'LeaveTypeID', 'LeaveTypeName', 30, 300, 1);
+        setCombo('#Comb_BackupUser', '@Url.Action("GetUsers", "UserPrepaid")', 'USERID', 'Name', 30, 300, 0);
+        setCombo('#Comb_EmployeeName', '@Url.Action("GetUsers", "UserPrepaid")', 'USERID', 'Name', 30, 200, 0);
+        setCombo('#Comb_Year', '@Url.Action("GetYears")', 'YearID', 'YearVal', 30, 100, 1);
+        $("#ShowDetails").click(function () {
+            var item = $("#Comb_EmployeeName").jqxComboBox('getSelectedItem');
+            var USERID = item.value;
+            var yitems = $("#Comb_Year").jqxComboBox('getSelectedItem');
+            var YearVal = yitems.label;
+            fillGridSum(USERID, YearVal);
+            fillGridDetail(USERID,YearVal);
+        })
+        makeDates(["D_FromDate", "D_ToDate"], 'frmLeave', 'rtl')
+        makeCombHidden(["Comb_USERID", "Comb_LeaveTypeID","Comb_BackupUser"], 'frmLeave');
+        setSubmitBtn("Save", 90, 30);
+        setCancelBtn("Cancel", 90, 30);
+        HideModal('close', 'Cancel', 'frmLeave', 'myModal');
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        makeContextMenu('CMenu', 'Leave', 150, 90);
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#Leave").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                var dataRecord = $("#Leave").jqxGrid('getrowdata', rowindex);
+                EditInputs(["LeaveID", "USERID", "Justification", "Remarks"], dataRecord);
+                $("#USERID").val(dataRecord.USERID);
+                $("#Comb_USERID").val(dataRecord.Name);
+                $("#LeaveTypeID").val(dataRecord.LeaveTypeID);
+                $("#Comb_LeaveTypeID").val(dataRecord.LeaveTypeName);
+
+                $("#BackupUser").val(dataRecord.BackupUser);
+                $("#Comb_BackupUser").val(dataRecord.BackupEmployee);
+                $("#FromDate").val(moment(dataRecord.FromDate).format('YYYY-MM-DD'));
+                $("#ToDate").val(moment(dataRecord.ToDate).format('YYYY-MM-DD'));
+                $("#D_FromDate").val(dataRecord.FromDateDr);
+                $("#D_ToDate").val(dataRecord.ToDateDr);
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if(varMenuItem =="جدید")
+            {
+                AddBClick();
+            }
+        });
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#LeaveID").val() == '' || $("#LeaveID").val() == null) ? '@Url.Action("Create")' : '@Url.Action("Edit")';
+                    if ($("#LeaveID").val() == '') {
+                        $("#LeaveID").remove();
+                    }
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmLeave').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModal').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#Leave').jqxGrid('updatebounddata', 'data');
+                                $('#frmLeave').append("<input type='hidden' id='LeaveID' name='LeaveID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModal').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#Leave').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmLeave').jqxValidator('validate', validationResult)
+        });
+
+        $('#frmLeave').jqxValidator({
+            hintType: 'label',
+            animationDuration: 0,
+            rtl:true,
+            rules: [
+                {
+                    input: '#Comb_USERID', message: '  ضروری ! ', action: 'select blur', rule: function (input)
+                    { var val = $("#Comb_USERID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+                {
+                    input: '#Comb_LeaveTypeID', message: '  ضروری ! ', action: 'select blur', rule: function (input)
+                    { var val = $("#Comb_LeaveTypeID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+            { input: '#D_FromDate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#D_ToDate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#Justification', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' }
+            ], theme: 'darkblue'
+        });
+
+        setAddBtn('AddNew', 'ltr', 150, 30);
+        setAddBtn('ShowDetails', 'ltr', 150, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+
+
+
+
+
+
+    });
+    function AddBClick()
+    {
+        clearInputs(["LeaveID", "USERID", "FromDate","D_FromDate", "ToDate","D_ToDate", "Justification", "BackupUser", "LeaveTypeID","Remarks"]);
+        $("#Comb_USERID").jqxComboBox('clearSelection');
+        $("#Comb_BackupUser").jqxComboBox('clearSelection');
+        $("#Comb_LeaveTypeID").jqxComboBox('clearSelection');
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+                        { text: 'از تاریخ', dataField: 'FromDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'الی تاریخ', dataField: 'ToDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'روزها', dataField: 'Days', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'اسم کارمند', dataField: 'Name', width: '15%', cellsformat: 'h:mm tt', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        //{ text: 'ولد', dataField: 'FName', width: '15%', cellsformat: 'h:mm tt', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'وظیفه', dataField: 'PositionName', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'دلیل رخصتی', dataField: 'Justification', width: '27%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'نوع رخصتی', dataField: 'LeaveTypeName', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'سرپرست', dataField: 'BackupEmployee', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        var datafields = [
+                        { name: 'FromDate', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'ToDate', type: 'date', format: "dd-MMM-yyyy" },
+                        //{name:'TIMEIN',type: 'date', format: 'h:mm tt'},
+                        //{ name: 'TIMOUT', type: 'date', format: 'h:mm tt' },
+                        { name:'LeaveID'},
+                        { name:'USERID'},
+                        { name:'FromDateDr'},
+                        { name:'ToDateDr'},
+                        { name:'Days'},
+                        { name:'BackupUser'},
+                        { name:'Justification'},
+                        { name:'LeaveTypeID'},
+                        { name:'Remarks'},
+                        { name:'LeaveTypeName'},
+                        { name:'Abbreviation'},
+                        { name:'PositionName'},
+                        { name:'Name'},
+                        { name:'FName'},
+                        { name:'BackupEmployee'},
+
+        ];
+
+        fillGrid(datafields, varGridName, '/HR/Leave/GetLeaveData');
+    }
+    function fillGridDetail(varUSERID,varYearVal)
+    {
+        var datafields = [
+                       { name: 'FromDate', type: 'date', format: "dd-MMM-yyyy" },
+                       { name: 'ToDate', type: 'date', format: "dd-MMM-yyyy" },
+                       { name: 'LeaveID' },
+                       { name: 'USERID' },
+                       { name: 'FromDateDr' },
+                       { name: 'ToDateDr' },
+                       { name: 'Days' },
+                       { name: 'BackupUser' },
+                       { name: 'Justification' },
+                       { name: 'LeaveTypeID' },
+                       { name: 'Remarks' },
+                       { name: 'LeaveTypeName' },
+                       { name: 'Abbreviation' },
+                       { name: 'PositionName' },
+                       { name: 'Name' },
+                       { name: 'FName' },
+                       { name: 'BackupEmployee' },
+
+        ];
+
+        fillGrid(datafields, 'Leave', '/HR/Leave/GetEmpLeaveData?USERID=' + varUSERID + '&&YearVal=' + varYearVal);
+    }
+    function setGridSum(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: false,
+                showfilterrow: false,
+                filterable: false,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'نوع رخصتی', dataField: 'LeaveTypeName', width: '50%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تعداد روز', dataField: 'Days', width: '50%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                ]
+
+            });
+        
+    }
+    function fillGridSum(varUSERID,varYearVal)
+    {
+        var datafields = [
+                        { name: 'Days' },
+                        { name: 'LeaveTypeName' },
+                        { name: 'Name' },
+
+        ];
+
+        fillGrid(datafields, 'LeaveBalanceGrid', '/HR/Leave/GetLeaveYearSummary?USERID=' + varUSERID + '&&YearVal=' + varYearVal);
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#Leave").jqxGrid('getselectedrowindex');
+        var rowid = $("#Leave").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#Leave").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")' + dataRecord.LeaveID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#Leave').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+</script>
+<table class="table" width="98%" dir="rtl">
+    <tr>
+        <td>
+            <table dir="rtl" class="table">
+                <tr>
+                    <td><strong><b>اسم کارمند</b></strong></td>
+                    <td><div id="Comb_EmployeeName"></div></td>
+                    <td><div id="Comb_Year"></div></td>
+                    <td><input type="button" id="ShowDetails" name="ShowDetails" value="محاسبه بیلانس" class="btn-success pull-left fonclass" /></td>
+
+                </tr>
+            </table>
+
+        </td>
+        <td width="50%">
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+
+                    بیلانس رخصتی سالانه
+                </div>
+                <div class="panel-body">
+                    <div class="table-responsive">
+                        <div id="LeaveBalanceGrid"></div>
+                    </div>
+                </div>
+            </div>
+
+        </td>
+    </tr>
+</table>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        مدیریت رخصتی کارمندان   
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="اضافه رخصتی" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="Leave"></div>
+        </div>
+    </div>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">اضافه کردن رخصتی جدید</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmLeave">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>اسم کارمند:</b></td>
+                            <td><div id="Comb_USERID" class="fonclass"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>تاریخ آغاز:</b></td>
+                            <td><input type="text" name="D_FromDate" id="D_FromDate" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>تاریخ ختم:</b></td>
+                            <td><input type="text" name="D_ToDate" id="D_ToDate" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>نوع رخصتی:</b></td>
+                            <td><div id="Comb_LeaveTypeID" class="fonclass"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>دلیل رخصتی:</b></td>
+                            <td><input type="text" name="Justification" id="Justification" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>سرپرست:</b></td>
+                            <td><div id="Comb_BackupUser" class="fonclass"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>ملاحظات:</b></td>
+                            <td><input type="text" name="Remarks" id="Remarks" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" align="center">
+                                <br />
+                                <input type="hidden" name="LeaveID" id="LeaveID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="popupWindow2">
+    <div class="fonclass">حذف معلومات</div>
+    <div style="overflow: hidden;">
+        <table>
+            <tr>
+                <td colspan="2">
+                    <b class="fonclass">آیا با حذف کردن موافق هستید؟</b>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"></td>
+                <td style="padding-top: 10px;" align="center">
+                    <input style="margin-right: 5px;" type="button" class="fonclass" id="ok" value="بلی" onclick="deleteRecord();" />
+                    <input id="Cancel2" type="button" class="fonclass" value="نخیر" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Insert">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">جدید</span>
+        </li>
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+    </ul>
+</div>

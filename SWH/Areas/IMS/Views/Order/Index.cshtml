@@ -1,0 +1,556 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGrid('Orders');
+        $(".closeDetail").click(function () {
+            $("#myModalDetail").modal('hide');
+        });
+        setCombo('#Comb_CIID', '@Url.Action("GetCategoryItem/")', 'CIID', 'CIName', 30, 200, 0);
+        makeCombHidden(["Comb_CIID"], 'frmOrder');
+        setInputsDr(["CIUnit", "OIRemarks"], 80, 30);
+        setInputDr("OCode", 200, 30);
+        var calendar = $.calendars.instance('persian');
+        var varDateFields = ["D_ODate"];
+        makeDates(varDateFields, "frmOrder", 'rtl');
+        setInputsDr(["D_ODate"], 300, 30);
+
+        //setInputDate("ODate", 200, 30);
+        setInputDr("ORemarks", 300, 30);
+        setSubmitBtn("Save", 200, 30);
+        setCancelBtn("Cancel", 200, 30);
+        HideModal('close', 'Cancel', 'frmOrder', 'myModal');
+
+        setInputsNumbers(["OIPricePerUnit", "OIDiscount", "OIQuantity"], 150, 30);
+        $('#Comb_CIID').bind('select', function (event) {
+            if (event.args) {
+                var valuee = event.args.item.value;
+                GetUnit(valuee);
+            }
+        });
+        setGridItems('OrderItems');
+        setGridItems('OrderItemsDetail');
+        makeContextMenu('CMenu', 'OrderItems', 150, 60);
+        makeContextMenu('CMenuOrder', 'Orders', 150, 60);
+        $("#CMenuOrder").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#Orders").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                var dataRecord = $("#Orders").jqxGrid('getrowdata', rowindex);
+                $("#OID").val(dataRecord.OID);
+                $("#OCode").val(dataRecord.OCode);
+                $("#ODate").val(dataRecord.ODate);
+                $("#D_ODate").val(dataRecord.ODateDr);
+
+                $("#ORemarks").val(dataRecord.ORemarks);
+                FillItemsGrid("OrderItems",dataRecord.OID);
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "تفصیلات خریداری") {
+                var rowindex = $("#Orders").jqxGrid('getselectedrowindex');
+                var dataRecord = $("#Orders").jqxGrid('getrowdata', rowindex);
+
+                $("#OCodeDetail").text(dataRecord.OCode);
+                //$("#ODateDetail").text(moment(dataRecord.ODate).format("YYYY-MMM-DD"));
+                $("#ODateDetail").text(dataRecord.ODateDr);
+                $("#OITotalDetail").text(dataRecord.OTotal);
+                $("#ORemarksDetail").text(dataRecord.ORemarks);
+                FillItemsGrid("OrderItemsDetail",dataRecord.OID);
+                $('#myModalDetail').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } 
+        });
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#OrderItems").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                $("#ActionID").val(2);
+                var dataRecord = $("#OrderItems").jqxGrid('getrowdata', rowindex);
+                $("#CIID").val(dataRecord.CIID);
+                $("#Comb_CIID").val(dataRecord.CIName);
+                $("#OIPricePerUnit").val(dataRecord.OIPricePerUnit);
+                $("#OIDiscount").val(dataRecord.OIDiscount);
+                $("#OIQuantity").val(dataRecord.OIQuantity);
+                EditInputs(["CIUnit", "OIRemarks"], dataRecord);
+
+            } else if (varMenuItem == "حذف") {
+                DeleteOrderItem();
+            } else if (varMenuItem == "جدید") {
+                AddBClick();
+            }
+        });
+        $("#Add").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+            var OrderItems = GetForm();
+            var Action = $("#ActionID").val();
+            var item = $("#Comb_CIID").jqxComboBox('getSelectedItem');
+            if (Action == 2 && item==null) {
+                OrderItems['CIName'] = $("#Comb_CIID").val();
+
+            } else {
+                
+                OrderItems['CIName'] = item.label;
+            }
+            OrderItems['CID'] = $("#Comb_CIID").val();
+            OrderItems["CIUnit"]=$("#CIUnit").val();
+            OrderItems["OIQuantity"]=$("#OIQuantity").val();
+            OrderItems["OIPricePerUnit"] = $("#OIPricePerUnit").val();
+            OrderItems["OIDiscount"]=$("#OIDiscount").val();
+            OrderItems["OITotal"] = ($("#OIQuantity").val() * $("#OIPricePerUnit").val()) - $("#OIDiscount").val();
+            if (Action == 2) {
+                var rowindex = $("#OrderItems").jqxGrid('getselectedrowindex');
+                var dataRecord = $("#OrderItems").jqxGrid('getrowdata', rowindex);
+                OrderItems["OIID"] = dataRecord.OIID;
+                $('#OrderItems').jqxGrid('updaterow', rowindex, OrderItems);
+            }
+            else {
+                $('#OrderItems').jqxGrid('addrow', null, OrderItems);
+            }
+
+           
+            clearCombs(["Comb_CIID"]);
+            clearInputs(["CID", "CIUnit", "OIQuantity", "OIPricePerUnit", "OIDiscount", "OIRemarks"]);
+            $("#ActionID").val('');
+                }
+            }
+            $('#frmOrder').jqxValidator('validate', validationResult)
+        });
+        $('#frmOrder').jqxValidator({
+            hintType: 'label',
+            //animationDuration: 0,
+            rtl: true,
+            rules: [
+                {
+                    input: '#Comb_CIID', message: '  ضروری ! ', action: 'blur', rule: function (input)
+                    { var val = $("#Comb_CIID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+              { input: '#OIQuantity', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#OIQuantity').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+              { input: '#OIPricePerUnit', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#OIPricePerUnit').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+
+            ], theme: 'darkblue'
+        });
+        $("#Save").click(function () {
+            var varURL = ($("#OID").val() == '' || $("#OID").val() == null) ? '@Url.Action("SaveOrder")' : '@Url.Action("UpdateOrder")';
+
+            var rows = $("#OrderItems").jqxGrid('getrows');
+
+            if (rows.length < 1) {
+                toastr["error"]("در خریداری اجناس موجود نیست");
+                return;
+            }
+            if ($("#OCode").val() == '')
+            {
+                toastr["error"]("کود خریداری را درج نمایید");
+                return;
+            }
+            if ($("#ODate").val() == '') {
+                toastr["error"]("تاریخ خریداری را درج نمایید");
+                return;
+            }
+            var Order = {"OID":"", "OCode": "", "ODate": "", "ORemarks": "", "OrderItems": [] };
+            Order.OID = $("#OID").val();
+            Order.OCode = $("#OCode").val();
+            Order.ODate = $("#ODate").val();
+            Order.ORemarks = $("#ORemarks").val();
+            for (var i = 0; i < rows.length; i++) {
+                Order.OrderItems.push(rows[i]);
+            }
+            //alert(JSON.stringify(Order))
+            $.ajax(
+                    {
+                        url: varURL,
+                        contentType: 'application/json;',
+                        dataType: 'json',
+                        type: 'post',
+                        data: JSON.stringify(Order),
+                        success: function (result) {
+                            if (result == "saved") {
+                                toastr["success"]("معلومات موفقانه درج سیستم گردید");
+                                $("#myModal").modal('hide');
+                                $('#Orders').jqxGrid('updatebounddata', 'data');
+                            } else if (result == "updated") {
+                                toastr["success"]("معلومات موفقانه اصلاح گردید");
+                                $("#myModal").modal('hide');
+                                $('#Orders').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"]("An error occured please check the form!<br />" + result);
+                            }
+                        }
+                    });
+        });
+        setAddBtn('AddNew', 'ltr', 100, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+//End Of Document Ready Function 
+    });
+    function AddBClick()
+    {
+        $("#OID").val('');
+        clearInputs(["OCode", "ODate", "D_ODate", "ORemarks", "OIQuantity", "OIPricePerUnit", "OIDiscount", "OIRemarks", "CID", "OID", "CCID", "CIUnit"]);
+        $("#Comb_CIID").jqxComboBox('clearSelection');
+        var rows = $("#OrderItems").jqxGrid('getrows');
+            var rowIDs = new Array();
+        for (var i = 0; i < rows.length; i++) {
+            rowIDs.push(rows[i].uid);
+        }
+        $("#OrderItems").jqxGrid('deleterow', rowIDs);
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGridItems(varGridName)
+    {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'جنس', dataField: 'CIName', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'واحد', dataField: 'CIUnit', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تعداد', dataField: 'OIQuantity', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'قیمت فی واحد', dataField: 'OIPricePerUnit', cellsformat: 'd', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تخفیف', dataField: 'OIDiscount', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مجموعه', dataField: 'OITotal', cellsformat: 'd', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ملاحظات', dataField: 'OIRemarks', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+    }
+    function FillItemsGrid(varGridName,OID) {
+        var source =
+        {
+            datatype: "json",
+            datafields: [
+                            { name: 'OIID', type: 'number' },
+                            { name: 'CIID', type: 'number' },
+                            { name: 'OIQuantity', type: 'number' },
+                            { name: 'OIPricePerUnit', type: 'number' },
+                            { name: 'OIDiscount', type: 'number' },
+                            { name: 'OITotal', type: 'number' },
+                            { name: 'OIRemarks', type: 'string' },
+                            { name: 'CIName', type: 'string' },
+                            { name: 'CIUnit', type: 'string' },
+            ],
+            cache: false,
+            url: ('/IMS/Order/GetOrderItems/' + OID),
+            root: 'Rows'
+        };
+
+        var dataadapter = new $.jqx.dataAdapter(source, {
+            loadError: function (xhr, status, error) {
+                alert(error);
+            }
+        }
+        );
+
+        $('#' + varGridName).jqxGrid(
+        {
+            source: dataadapter
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+                        { text: 'نمبر خریداری', dataField: 'OCode', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تاریخ', dataField: 'ODateDr', width: '20%', filtertype: 'date', cellsformat: 'dd-MMM-yyyy', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'قیمت مجموعی', dataField: 'OTotal', cellsformat: 'd', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تعداد اجناس', dataField: 'OrderItems', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ملاحظات', dataField: 'ORemarks', width: '30%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        var datafields = [
+                  { name: 'OID' },
+                  { name: 'OCode' },
+                  { name: 'ODate', type: 'date' },
+
+                  { name: 'ODateDr' },
+                  { name: 'OTotal' },
+                  { name: 'OrderItems' },
+                  { name: 'ORemarks' },
+
+
+        ];
+
+        fillGrid(datafields, varGridName, '/Order/GetOrders');
+    }
+    function DeleteOrderItem()
+    {
+        var rowindex = $("#OrderItems").jqxGrid('getselectedrowindex');
+        var rowid = $("#OrderItems").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#OrderItems").jqxGrid('getrowdata', rowindex);
+        if (dataRecord.OIID)
+        {
+            $.ajax(
+            {
+                url: '@Url.Action("DeleteOrderItem/")' + dataRecord.OIID,
+                type: 'post',
+                success: function (result) {
+                    if (result = "deleted") {
+                        $('#OrderItems').jqxGrid('deleterow', rowid);
+                        toastr["error"]("معلومات موفقانه حذف گردید");
+                    }
+                   // $("#DeletePopupWindow").jqxWindow('close');
+                }
+            });
+        }
+        else {
+            $("#OrderItems").jqxGrid('deleterow', rowid);
+        }
+    }
+ 
+    function GetUnit(ci)
+    {
+        $.ajax(
+                    {
+                        url: '@Url.Action("GetUnit/")'+ci,
+                        type: 'get',
+                        success: function (result) {
+                            //alert(JSON.stringify(result));
+                            //return result;
+                            $("#CIUnit").val(result);
+                        }
+                    });
+    }
+    function GetForm() {
+        var un_array = $("#frmOrder").serializeArray();
+        var _array = {};
+        $.map(un_array, function (n, i) {
+            if (n.name.indexOf('[') > -1) {
+                var array = n.name.match(/\[(.*?)\]/);
+                var key = n.name.replace(array[1], "").replace('[', "").replace(']', "");
+                if (!_array[key]) {
+                    _array[key] = {};
+                }
+                _array[key][array[1]] = n['value'];
+            } else {
+                _array[n['name']] = n['value'];
+            }
+        });
+        return _array;
+    }
+
+    /**
+    * Extracts form elements and maps to passed in object
+    */
+    function ExtractObjectFromForm($fieldContainer, objectType) {
+        var innerArray = [];
+        var obj = $.map($fieldContainer.find(":input"), function (n, i) {
+            var o = {};
+            if ($(n).is("input:text")
+                    || $(n).is("textarea")
+                    || $(n).is("input:hidden")
+                    || $(n).is("input:password"))
+                o[n.name] = $(n).val();
+            else if ($(n).is("input:checkbox"))
+                o[n.name] = ($(n).is(":checked") ? true : false);
+            else if (n.type == 'radio') {
+                if (innerArray.indexOf(n.name) == -1) {
+                    innerArray.push(n.name);
+                }
+            }
+            else
+                o[n.name] = $(n).val();
+            return o;
+        });
+        $.each(innerArray, function (index, item) {
+            var iobj = {};
+            iobj[item] = $("input[name='" + item + "']:checked").val();
+            obj.push(iobj);
+        });
+        return getObjectFromObject(obj, objectType);
+    }
+
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        خریداری مواد گدام
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="خریداری جدید" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="Orders"></div>
+        </div>
+    </div>
+</div>
+
+
+
+<div id="myModal" class="modal fade" role="dialog">
+    <div style="width:90%;" class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">خریداری جدید</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmOrder">
+                    <table class="table table-striped" dir="rtl">
+                        
+                        <tr>
+                            <td><b>نمبر خریداری:</b></td>
+                            <td><input type="text" name="OCode" id="OCode" class="fonclass" /></td>
+                            <td><b> تاریخ:</b></td>
+                            <td><input type="text" id="D_ODate" class="is-dateickeer" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>ملاحظات:</b></td>
+                            <td colspan="3"><input type="text" name="ORemarks" id="ORemarks" class="fonclass" /></td>
+                        </tr>
+                    </table>
+                        <table class="table table-bordered" dir="rtl">
+                            <tr>
+                                <td colspan="7"><div class="panel panel-success"><div class="panel-heading"><b>اجناس</b></div></div></td>
+                            </tr>
+                        <tr>
+                            <td><b>جنس</b></td>
+                            <td><b>واحد</b></td>
+                            <td><b>تعداد</b></td>
+                            <td><b>قیمت فی واحد</b></td>
+                            <td><b>تخفیف</b></td>
+                            <td><b>ملاحظات</b></td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td><div id="Comb_CIID"></div></td>
+                            <td><input type="text" name="CIUnit" id="CIUnit" class="readonl" readonly="readonly" /></td>
+                            <td><input type="text" name="OIQuantity" id="OIQuantity" /></td>
+                            <td><input type="text" name="OIPricePerUnit" id="OIPricePerUnit" /></td>
+                            <td><input type="text" name="OIDiscount" id="OIDiscount" /></td>
+                            <td><input type="text" name="OIRemarks" id="OIRemarks" /></td>
+                            <td><button type="button" id="Add" class="float-left fonclass" style="font-size:15px; background-color:gray;">
+                                <span class="glyphicon glyphicon-plus"></span></button></td>
+                        </tr>
+                    </table>
+                    <table class="table">
+                        <tr>
+                            <td><div id="OrderItems"></div></td>
+                        </tr>
+                    </table>
+                    <table class="table" dir="rtl">
+                        <tr>
+                            <td colspan="2" align="center">
+                                <input type="hidden" name="OID" id="OID" />
+                                <input type="hidden" name="OIID" id="OIID" />
+                                <input type="hidden" id="ActionID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="myModalDetail" class="modal fade" role="dialog">
+    <div style="width:90%;" class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close closeDetail" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">تفصیلات خریداری</h4>
+            </div>
+            <div class="modal-body">
+                    <table class="table table-striped" dir="rtl">
+
+                        <tr>
+                            <td><b>نمبر خریداری:</b></td>
+                            <td><div id="OCodeDetail"></div></td>
+                            <td><b> تاریخ:</b></td>
+                            <td><div id="ODateDetail"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>مجموعه خریداری</b></td>
+                            <td><div id="OITotalDetail"></div></td>
+                            <td><b>ملاحظات:</b></td>
+                            <td><div id="ORemarksDetail"></div></td>
+                        </tr>
+                        <tr> 
+                            <td colspan="4"><div class="panel panel-success"><div class="panel-heading"><b>اجناس</b></div></div></td>
+                        </tr>
+                    </table>
+                    <table class="table table-bordered">
+                        <tr>
+                            <td><div id="OrderItemsDetail"></div></td>
+                        </tr>
+                    </table>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+    </ul>
+</div>
+<div id="CMenuOrder">
+    <ul dir="rtl">
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/folder.png" class="pull-right" />
+            <span class="fonclass">تفصیلات خریداری</span>
+        </li>
+    </ul>
+</div>

@@ -1,0 +1,399 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        @*setCombo('#Comb_PositionID', '@Url.Action("GetPosition", "Position")', 'PositionID', 'PositionName', 30, 200, 0);
+        setCombo('#Comb_QualificationID', '@Url.Action("GetQualification")', 'QualificationID', 'QualificationName', 30, 200, 0);
+        var GenderSource = [
+               { value: "مرد", label: "مرد " },
+               { value: "زن", label: "زن" },
+        ];
+
+        $('#Comb_Gender').jqxComboBox({ placeHolder: "-- لطفا انتخاب کنید --", source: GenderSource, theme: 'darkblue', height: 25, width: 200, autoDropDownHeight: true, rtl: true });
+        makeCombHidden(["Comb_PositionID", "Comb_Gender", "Comb_QualificationID"], 'frmUsers');
+        makeDates(["D_DOB", "D_JoinDate"], 'frmUsers', 'rtl')
+        setInputsNumbers(["N_GorssSalary"], 200, 30);
+        makeNumberHidden(["N_GorssSalary"], "frmUsers");
+        setInputsDr(["Name", "FName", "Mobile", "Email", "D_DOB", "D_JoinDate", "CAddress", "PAddress", "Experiance", "Specilization", "University", "Remarks"], 200, 30);
+
+
+
+        HideModal('closeRes', 'CancelRes', 'frmRes', 'myModalRes');
+        makeDates(["D_ResignDate"], 'frmRes', 'rtl')
+        setInputsDr(["D_ResignDate", "ResignReason"], 200, 30);
+        setSubmitBtn("SaveRes", 120, 30);
+        setCancelBtn("CancelRes", 120, 30);
+
+        setSubmitBtn("Save", 120, 30);
+        setCancelBtn("Cancel", 120, 30);
+        HideModal('close', 'Cancel', 'frmUsers', 'myModal');
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        makeContextMenu('CMenu', 'USERS', 150, 90);*@
+
+
+
+        //setGrid('USERS');
+        //setGridDeActive('DeActiveUSERS');
+        //$("#CMenu").on('itemclick', function (event) {
+        //    var args = event.args;
+        //    var varMenuItem = $.trim($(args).text());
+        //    var rowindex = $("#USERS").jqxGrid('getselectedrowindex');
+        //    if (varMenuItem == 'تعدیل') {
+        //        var dataRecord = $("#USERS").jqxGrid('getrowdata', rowindex);
+        //        EditInputs(["USERID","PositionID","Name","FName","Mobile","Email","GorssSalary","Gender","CAddress","PAddress","QualificationID","Specilization","University","Experiance","Remarks"], dataRecord);
+        //        $("#Comb_PositionID").val(dataRecord.PositionName);
+        //        $("#Comb_Gender").val(dataRecord.Gender);
+        //        $("#Comb_QualificationID").val(dataRecord.QualificationName);
+        //        $("#N_GorssSalary").val(dataRecord.GorssSalary);
+
+        //        $("#DOB").val(moment(dataRecord.Date).format('YYYY-MM-DD'));
+        //        $("#D_DOB").val(dataRecord.DOBDr);
+        //        $("#JoinDate").val(moment(dataRecord.JoinDate).format('YYYY-MM-DD'));
+        //        $("#D_JoinDate").val(dataRecord.JoinDateDr);
+        //        $('#myModal').modal({
+        //            backdrop: 'static',
+        //            keyboard: false
+        //        });
+        //    } else if (varMenuItem == "استعفی/انفکاک") {
+        //        var dataRecord = $("#USERS").jqxGrid('getrowdata', rowindex);
+        //        $("#USERIDRes").val(dataRecord.USERID);
+        //        $('#myModalRes').modal({
+        //            backdrop: 'static',
+        //            keyboard: false
+        //        });
+        //    } else if (varMenuItem == "جدید") {
+        //        AddBClick();
+        //    }
+        //});
+
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#USERID").val() == '' || $("#USERID").val() == null) ? '@Url.Action("Create")' : '@Url.Action("Edit")';
+                    if ($("#USERID").val() == '') {
+                        $("#USERID").remove();
+                    }
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmUsers').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModal').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#USERS').jqxGrid('updatebounddata', 'data');
+                                $('#frmUsers').append("<input type='hidden' id='USERID' name='USERID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModal').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#USERS').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmUsers').jqxValidator('validate', validationResult)
+        });
+
+        //$('#frmUsers').jqxValidator({
+        //    hintType: 'label',
+        //    animationDuration: 0,
+        //    rtl: true,
+        //    rules: [
+        //        {
+        //            input: '#Comb_PositionID', message: '  ضروری ! ', action: 'select blur', rule: function (input)
+        //            { var val = $("#Comb_PositionID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+        //        },
+        //    { input: '#Name', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+        //    { input: '#FName', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+        //    { input: '#Mobile', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+        //    { input: '#D_JoinDate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+        //    { input: '#N_GorssSalary', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#N_GorssSalary').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+        //    //{ input: '#N_DeductedAmount', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#N_DeductedAmount').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+
+        //    ], theme: 'darkblue'
+        //});
+        $("#SaveRes").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    $.ajax(
+                    {
+                        url: '/HR/USERINFO/UserResign/',
+                        type: 'post',
+                        data: $('#frmRes').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModalRes').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#USERS').jqxGrid('updatebounddata', 'data');
+                                $('#DeActiveUSERS').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmRes').jqxValidator('validate', validationResult)
+        });
+
+        //$('#frmRes').jqxValidator({
+        //    hintType: 'label',
+        //    animationDuration: 0,
+        //    rtl: true,
+        //    rules: [
+        //    { input: '#ResignReason', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+        //    { input: '#D_ResignDate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+        //    ], theme: 'darkblue'
+        //});
+        setAddBtn('AddNew', 'ltr', 150, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+    });
+    function AddBClick() {
+        //clearInputs(["USERID", "USERID", "Date", "EndDate", "TIMEIN", "TIMOUT", "LateIn", "LateIn", "EarlyOut", "Remarks"]);
+        //$("#Comb_USERID").jqxComboBox('clearSelection');
+        window.location = '/HR/Payroll/Generate'
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'کود', dataField: 'USERID', pinned: true, width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'اسم کارمند', dataField: 'Name', pinned: true, width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ولد', dataField: 'FName', pinned: true, width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'وظیفه', dataField: 'PositionName', pinned: true, width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'شماره موبایل', dataField: 'Mobile', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ایمیل آدرس', dataField: 'Email', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'معاش', dataField: 'GorssSalary', cellsformat: 'd', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تاریخ تولد', dataField: 'DOBDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تاریخ شمولیت', dataField: 'JoinDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'جنس', dataField: 'Gender', width: '8%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'سکونت اصلی', dataField: 'PAddress', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'سکونت فعلی', dataField: 'CAddress', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'درجه تحصیل', dataField: 'QualificationName', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'رشته تحصیلی', dataField: 'Specilization', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مرجع تحصیل', dataField: 'University', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تجربه کاری', dataField: 'Experiance', width: '12%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ملاحظات', dataField: 'Remarks', width: '12%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        var datafields = [
+                        { name: 'DOB', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'JoinDate', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'ResignDate', type: 'date', format: "dd-MMM-yyyy" },
+                        { name : 'USERID'},
+                        { name : 'PositionID'},
+                        { name : 'Name'},
+                        { name : 'FName'},
+                        { name : 'Mobile'},
+                        { name : 'Email'},
+                        { name : 'GorssSalary'},
+                        { name : 'DOBDr'},
+                        { name : 'JoinDateDr'},
+                        { name : 'ResignDateDr'},
+                        { name : 'Gender'},
+                        { name : 'CAddress'},
+                        { name : 'PAddress'},
+                        { name : 'Status'},
+                        { name : 'QualificationID'},
+                        { name : 'Specilization'},
+                        { name : 'University'},
+                        { name : 'Experiance'},
+                        { name : 'PositionName'},
+                        { name : 'QualificationName'},
+
+
+        ];
+
+        fillGrid(datafields, varGridName, '/HR/USERINFO/GetUSERData/1');
+    }
+    function setGridDeActive(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'کود', dataField: 'USERID', pinned: true, width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'اسم کارمند', dataField: 'Name', pinned: true, width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ولد', dataField: 'FName', pinned: true, width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'وظیفه', dataField: 'PositionName', pinned: true, width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'علت انفکاک', dataField: 'ResignReason', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تاریخ انفکاک', dataField: 'ResignDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'شماره موبایل', dataField: 'Mobile', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ایمیل آدرس', dataField: 'Email', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'معاش', dataField: 'GorssSalary', cellsformat: 'd', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تاریخ تولد', dataField: 'DOBDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تاریخ شمولیت', dataField: 'JoinDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'جنس', dataField: 'Gender', width: '8%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'سکونت اصلی', dataField: 'PAddress', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'سکونت فعلی', dataField: 'CAddress', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'درجه تحصیل', dataField: 'QualificationName', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'رشته تحصیلی', dataField: 'Specilization', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مرجع تحصیل', dataField: 'University', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تجربه کاری', dataField: 'Experiance', width: '12%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ملاحظات', dataField: 'Remarks', width: '12%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        var datafields = [
+                        { name: 'DOB', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'JoinDate', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'ResignDate', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'USERID' },
+                        { name: 'PositionID' },
+                        { name: 'Name' },
+                        { name: 'FName' },
+                        { name: 'Mobile' },
+                        { name: 'Email' },
+                        { name: 'GorssSalary' },
+                        { name: 'DOBDr' },
+                        { name: 'JoinDateDr' },
+                        { name: 'ResignDateDr' },
+                        { name: 'Gender' },
+                        { name: 'CAddress' },
+                        { name: 'PAddress' },
+                        { name: 'Status' },
+                        { name: 'QualificationID' },
+                        { name: 'Specilization' },
+                        { name: 'University' },
+                        { name: 'Experiance' },
+                        { name: 'PositionName' },
+                        { name: 'QualificationName' },
+                        { name: 'ResignReason' },
+
+
+        ];
+
+        fillGrid(datafields, varGridName, '/HR/USERINFO/GetUSERData/0');
+    }
+    function setGridUserPrepaid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'تاریخ', dataField: 'DateDr', width: '40%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مبلغ پیش پرداخت', dataField: 'Amount', width: '30%', cellsformat: 'd', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'کسرات ماهانه', dataField: 'DeductedAmount', cellsformat: 'd', width: '30%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                ]
+
+            });
+
+    }
+    function fillGridUserPrepaid(varUSERID) {
+        var datafields = [
+                        { name: 'USERID' },
+                        { name: 'Amount' },
+                        { name: 'Name' },
+                        { name: 'DeductedAmount' },
+                        { name: 'DateDr' },
+                        { name: 'Date', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'USERID' },
+
+
+        ];
+
+        fillGrid(datafields, 'UserPrepaidDetail', '/HR/UserPrepaid/GetUserPrepaid/' + varUSERID);
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#USERS").jqxGrid('getselectedrowindex');
+        var rowid = $("#USERS").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#USERS").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")' + dataRecord.USERID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#USERS').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+</script>
+
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        لست معاشات
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="معاش جدید" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="PayrollSummary"></div>
+        </div>
+    </div>
+</div>
+

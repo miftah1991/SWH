@@ -1,0 +1,197 @@
+﻿@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<style type="text/css">
+    .redClass {
+        background-color: #F8C0C0;
+    }
+
+    .ApprovedClass {
+        background-color: #b3e0ff;
+    }
+
+    .greenClass {
+        background-color: Green;
+    }
+
+    .blueClass {
+        background-color: Blue;
+        color: white;
+    }
+
+    .grayClass {
+        background-color: #c1c1c1;
+    }
+
+    .btn-danger {
+        color: #fff;
+        background-color: #d9534f;
+        border-color: #d43f3a;
+    }
+
+        .btn-danger.focus, .btn-danger:focus {
+            color: #fff;
+            background-color: #c9302c;
+            border-color: #761c19;
+        }
+
+        .btn-danger:hover {
+            color: #fff;
+            background-color: #c9302c;
+            border-color: #ac2925;
+        }
+
+    .btn-success {
+        color: #fff;
+        background-color: #5cb85c;
+        border-color: #4cae4c;
+    }
+    .blink_me {
+
+        animation:blinker 1s linear infinite;
+    }
+    @@keyframes blinker {
+        50%{
+            opacity:0;
+        }
+    }
+</style>
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGrid('BookingWarning');
+        var counts = @ViewBag.Counts;
+        if(counts==0){
+            removeClass('Bg','Alaram');
+        }
+        var counts = @ViewBag.Counts1;
+        if(counts==0){
+            removeClass('Bg1','Alaram1');
+        }
+    });
+    function removeClass(varBg,varAlaram)
+    {
+        $("#"+varAlaram).removeClass("blink_me");
+        $("#"+varBg).removeClass("bg-red");
+        $("#"+varBg).addClass("bg-green");
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+                        { text: 'تاریخ برگذاری محفل', dataField: 'DateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تاریخ قرارداد', dataField: 'BookingDateDr', width: '8%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'صالون', dataField: 'BHName', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تایم', dataField: 'ShiftName', width: '6%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تعداد مهمان', dataField: 'BookedGuest', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'نوعیت محفل', dataField: 'BTName', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مینو', dataField: 'MenuName', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'اسم مشتری', dataField: 'CustomerName', width: '12%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'شماره تماس', dataField: 'CustomerMobile', width: '14%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'پیش پرداخت', dataField: 'Prepaid', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        
+
+        
+    }
+    function fill(varURL)
+    {
+        var datafields = [
+                  { name: 'BookingDateDr' },
+                  { name: 'MenuName' },
+                  { name: 'DateDr' },
+                  { name: 'ShiftName' },
+                  { name: 'BTName' },
+                  { name: 'BHName' },
+                  { name: 'CustomerName' },
+                  { name: 'CustomerMobile' },
+                  { name: 'BookedGuest' },
+                  { name: 'Prepaid' },
+
+        ];
+        fillGrid(datafields, 'BookingWarning', varURL);
+    }
+</script>
+<div class="row" dir="rtl">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+        <h1 class="fonclass">
+            داشبورد
+            <small>معلومات مختصر سیستم اداری قصر عروسی ستاره ها</small>
+        </h1><br />
+        @*<ol class="breadcrumb">
+                <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
+                <li class="active">Dashboard</li>
+            </ol>*@
+    </section>
+    @*<div class="col-lg-3 col-xs-6" dir="rtl">
+        <div class="small-box bg-aqua">
+            <div class="inner">
+                <h3>150</h3>
+
+                <p>بوکنگ جدید</p>
+            </div>
+            <div class="icon">
+                <i class="ion ion"></i>
+            </div>
+        </div>
+    </div>*@
+    <div class="col-lg-3 col-xs-6 blink_me" dir="rtl" id="Alaram1">
+        <div class="small-box bg-red" id="Bg1">
+            <div class="inner">
+                <h3>@ViewBag.Counts1</h3>
+
+                <p><a href="#" onclick="fill('/Booking/GetWarning1');" style="color:white">الارم پرداخت ها</a></p>
+            </div>
+            <div class="icon">
+                <i class="ion ion"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-xs-6 blink_me" dir="rtl" id="Alaram">
+        <!-- small box -->
+        <div class="small-box bg-red" id="Bg">
+            <div class="inner">
+                <h3>@ViewBag.Counts</h3>
+
+                <p style="font-size:large"><a href="#" onclick="fill('/Booking/GetWarning');" style="color:white">الارم کارت ها</a></p>
+            </div>
+            <div class="icon">
+                <i class="ion ion"></i>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row" dir="rtl">
+    <div class="panel panel-success">
+        <div class="panel-heading">
+           معلومات الارم بوکنگ
+        </div>
+        <div class="panel-body">
+            <div class="table-responsive">
+                <div id="BookingWarning"></div>
+            </div>
+        </div>
+    </div>
+</div>

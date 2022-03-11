@@ -1,0 +1,288 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGrid('CategoryItems');
+        setInputsDr(["CIName", "CICode", "CIUnit", "CIRemarks"], 300, 30);
+        setCombo('#Comb_CID', '@Url.Action("GetCategory")', 'CID', 'CName', 30, 300, 1);
+        setCombo('#Comb_CCID', '@Url.Action("GetCategoryClass")', 'CCID', 'CCName', 30, 300, 1);
+        makeCombHidden(["Comb_CID","Comb_CCID"], 'frmCategoryItems');
+        setSubmitBtn("Save", 90, 30);
+        setCancelBtn("Cancel", 90, 30);
+        HideModal('close', 'Cancel', 'frmCategoryItems', 'myModal');
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        makeContextMenu('CMenu', 'CategoryItems', 150, 90);
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#CategoryItems").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                var dataRecord = $("#CategoryItems").jqxGrid('getrowdata', rowindex);
+                EditInputs(["CIID", "CIName", "CICode", "CIUnit", "CIRemarks"], dataRecord);
+                if (dataRecord.CID == null) {
+                    $("#CID").val('');
+                    $("#Comb_CID").jqxComboBox('clearSelection');
+                    $("#CCID").val('');
+                    $("#Comb_CCID").jqxComboBox('clearSelection');
+                } else {
+                    $("#CCID").val(dataRecord.CCID);
+                    $("#Comb_CCID").val(dataRecord.CCName);
+                    $("#CID").val(dataRecord.CID);
+                    $("#Comb_CID").val(dataRecord.CName);
+                }
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if(varMenuItem =="جدید")
+            {
+                AddBClick();
+            }
+        });
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#CIID").val() == '' || $("#CIID").val() == null) ? '@Url.Action("Create")' : '@Url.Action("Edit")';
+                    if ($("#CIID").val() == '') {
+                        $("#CIID").remove();
+                    }
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmCategoryItems').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModal').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#CategoryItems').jqxGrid('updatebounddata', 'data');
+                                $('#frmCategoryItems').append("<input type='hidden' id='CIID' name='CIID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModal').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#CategoryItems').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmCategoryItems').jqxValidator('validate', validationResult)
+        });
+            
+        $('#frmCategoryItems').jqxValidator({
+            hintType: 'label',
+            animationDuration: 0,
+            rtl:true,
+            rules: [
+                {
+                    input: '#Comb_CID', message: '  ضروری ! ', action: 'select blur', rule: function (input)
+                    { var val = $("#Comb_CID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+                {
+                    input: '#Comb_CCID', message: '  ضروری ! ', action: 'select blur', rule: function (input)
+                    { var val = $("#Comb_CCID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+            { input: '#CIName', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#CICode', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' }
+            ], theme: 'darkblue'
+        });
+
+        setAddBtn('AddNew', 'ltr', 100, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+
+
+
+
+
+
+    });
+    function AddBClick()
+    {
+        clearInputs(["CIName", "CICode", "CIRemarks", "CID","CIID", "CCID","CIUnit"]);
+        $("#Comb_CID").jqxComboBox('clearSelection');
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+                        { text: 'کتگوری', dataField: 'CName', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'نوع کتگوری', dataField: 'CCName', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'اسم جنس', dataField: 'CIName', width: '30%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'کود جنس', dataField: 'CICode', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'واحد جنس', dataField: 'CIUnit', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ملاحظات', dataField: 'CIRemarks', width: '20%', cellsalign: 'right', align: 'right' ,cellclassname: cellclassname},
+
+
+                ]
+
+            });
+        var datafields = [
+                  { name: 'CName' },
+                  { name: 'CCName' },
+                  { name: 'CCode' },
+                  { name: 'CRemarks' },
+                  { name: 'CID' },
+                  { name: 'CCID' },
+
+                  { name: 'CIID' },
+                  { name: 'CIName' },
+                  { name: 'CICode' },
+                  { name: 'CIUnit' },
+                  { name: 'CIRemarks' },
+
+
+        ];
+
+        fillGrid(datafields, varGridName, '/CategoryItems/GetCategoryItems');
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#CategoryItems").jqxGrid('getselectedrowindex');
+        var rowid = $("#CategoryItems").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#CategoryItems").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")'+dataRecord.CIID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#CategoryItems').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        اجناس
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="جنس جدید" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="CategoryItems"></div>
+        </div>
+    </div>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">جنس جدید</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmCategoryItems">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>کتگوری:</b></td>
+                            <td><div id="Comb_CID" class="fonclass"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>نوع کتگوری:</b></td>
+                            <td><div id="Comb_CCID" class="fonclass"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>اسم جنس:</b></td>
+                            <td><input type="text" name="CIName" id="CIName" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>کود جنس:</b></td>
+                            <td><input type="text" name="CICode" id="CICode" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>واحد جنس:</b></td>
+                            <td><input type="text" name="CIUnit" id="CIUnit" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>ملاحظات:</b></td>
+                            <td><input type="text" name="CIRemarks" id="CIRemarks" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" align="center">
+                                <br />
+                                <input type="hidden" name="CIID" id="CIID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="popupWindow2">
+    <div class="fonclass">حذف معلومات</div>
+    <div style="overflow: hidden;">
+        <table>
+            <tr>
+                <td colspan="2">
+                    <b class="fonclass">آیا با حذف کردن موافق هستید؟</b>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"></td>
+                <td style="padding-top: 10px;" align="center">
+                    <input style="margin-right: 5px;" type="button" class="fonclass" id="ok" value="بلی" onclick="deleteRecord();" />
+                    <input id="Cancel2" type="button" class="fonclass" value="نخیر" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Insert">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">جدید</span>
+        </li>
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+    </ul>
+</div>

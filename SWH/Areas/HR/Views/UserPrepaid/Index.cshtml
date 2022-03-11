@@ -1,0 +1,336 @@
+﻿@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        makeContextMenu('CMenu', 'UserPrepaidDetail', 150, 90);
+        setCombo('#Comb_USERID', '@Url.Action("GetUsers")', 'USERID', 'Name', 30, 200, 0);
+        makeCombHidden(["Comb_USERID"], 'frmUserPrepaid');
+        makeDates(["D_Date"], 'frmUserPrepaid', 'rtl')
+        setInputsNumbers(["N_Amount", "N_DeductedAmount"], 200, 30);
+        makeNumberHidden(["N_Amount", "N_DeductedAmount"], "frmUserPrepaid")
+        setInputsDr(["D_Date"], 200, 30);
+        setSubmitBtn("Save", 90, 30);
+        setCancelBtn("Cancel", 90, 30);
+        HideModal('close', 'Cancel', 'frmUserPrepaid', 'myModal');
+
+        setGrid('UserPrepaid');
+        setGridUserPrepaid('UserPrepaidDetail');
+        $('#UserPrepaid').on('rowselect', function (event) {
+            //alert(event.args.row.SubProjectID);
+            fillGridUserPrepaid(event.args.row.USERID);
+        });
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#UserPrepaidDetail").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                var dataRecord = $("#UserPrepaidDetail").jqxGrid('getrowdata', rowindex);
+                EditInputs(["PrepaidID", "USERID", "Amount", "DeductedAmount", "Remarks"], dataRecord);
+                $("#USERID").val(dataRecord.USERID);
+                $("#Comb_USERID").val(dataRecord.Name);
+                $("#N_Amount").val(dataRecord.Amount);
+                $("#N_DeductedAmount").val(dataRecord.DeductedAmount);
+                $("#Date").val(moment(dataRecord.Date).format('YYYY-MM-DD'));
+                $("#D_Date").val(dataRecord.DateDr);
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if (varMenuItem == "جدید") {
+                AddBClick();
+            }
+        });
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#PrepaidID").val() == '' || $("#PrepaidID").val() == null) ? '@Url.Action("Create")' : '@Url.Action("Edit")';
+                    if ($("#PrepaidID").val() == '') {
+                        $("#PrepaidID").remove();
+                    }
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmUserPrepaid').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModal').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#UserPrepaid').jqxGrid('updatebounddata', 'data');
+                                $('#UserPrepaidDetail').jqxGrid('updatebounddata', 'data');
+                                $('#frmUserPrepaid').append("<input type='hidden' id='PrepaidID' name='PrepaidID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModal').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#UserPrepaid').jqxGrid('updatebounddata', 'data');
+                                $('#UserPrepaidDetail').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmUserPrepaid').jqxValidator('validate', validationResult)
+        });
+
+        $('#frmUserPrepaid').jqxValidator({
+            hintType: 'label',
+            animationDuration: 0,
+            rtl: true,
+            rules: [
+                {
+                    input: '#Comb_USERID', message: '  ضروری ! ', action: 'select blur', rule: function (input)
+                    { var val = $("#Comb_USERID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+            { input: '#D_Date', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#N_Amount', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#N_Amount').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+            { input: '#N_DeductedAmount', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#N_DeductedAmount').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+
+            ], theme: 'darkblue'
+        });
+
+        setAddBtn('AddNew', 'ltr', 150, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+
+
+
+
+
+
+
+    });
+    function AddBClick() {
+        clearInputs(["PrepaidID", "USERID", "Date", "EndDate", "TIMEIN", "TIMOUT", "LateIn", "LateIn", "EarlyOut", "Remarks"]);
+        $("#Comb_USERID").jqxComboBox('clearSelection');
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'اسم کارمند', dataField: 'Name', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ولد', dataField: 'FName', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'وظیفه', dataField: 'PositionName', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مبلغ پیش پرداخت', dataField: 'Amount', cellsformat: 'd', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مبلغ پرداخت شده', dataField: 'PrePaidDeductd', cellsformat: 'd', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'باقی', dataField: 'Balance', width: '14%', cellsformat: 'd', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        var datafields = [
+                        { name: 'USERID' },
+                        { name: 'USERID' },
+                        //{ name: 'Date', type: 'date', format: "dd-MMM-yyyy" },
+                        //{ name: 'EndDate', type: 'date', format: "dd-MMM-yyyy" },
+                        //{ name: 'TIMEIN', type: 'date', format: 'h:mm tt' },
+                        //{ name: 'TIMOUT', type: 'date', format: 'h:mm tt' },
+                        { name: 'Amount' },
+                        { name: 'Balance' },
+                        { name: 'PrePaidDeductd' },
+                        { name: 'Name' },
+                        { name: 'PositionName' },
+                        { name: 'FName' },
+
+
+        ];
+
+        fillGrid(datafields, varGridName, '/HR/UserPrepaid/GetPrepaidSum');
+    }
+    function setGridUserPrepaid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'تاریخ', dataField: 'DateDr', width: '40%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مبلغ پیش پرداخت', dataField: 'Amount', width: '30%', cellsformat: 'd', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'کسرات ماهانه', dataField: 'DeductedAmount', cellsformat: 'd', width: '30%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                ]
+
+            });
+
+    }
+    function fillGridUserPrepaid(varUSERID) {
+        var datafields = [
+                        { name: 'USERID' },
+                        { name: 'Amount' },
+                        { name: 'Name' },
+                        { name: 'DeductedAmount' },
+                        { name: 'DateDr' },
+                        { name: 'Date', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'PrepaidID' },
+
+
+        ];
+
+        fillGrid(datafields, 'UserPrepaidDetail', '/HR/UserPrepaid/GetUserPrepaid/' + varUSERID);
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#UserPrepaidDetail").jqxGrid('getselectedrowindex');
+        var rowid = $("#UserPrepaidDetail").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#UserPrepaidDetail").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")' + dataRecord.PrepaidID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#UserPrepaidDetail').jqxGrid('updatebounddata', 'data');
+                    $('#UserPrepaid').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        مجموعه پیش پرداخت کارمندان
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="پیش پرداخت جدید" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="UserPrepaid"></div>
+        </div>
+    </div>
+</div>
+<div class="panel panel-success" style="text-align:right" >
+    <div class="panel-heading" style="text-align:right;">
+        تفصیلات پیش پرداخت کارمندان
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="UserPrepaidDetail"></div>
+        </div>
+    </div>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">فورم پیش پرداخت</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmUserPrepaid">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>اسم کارمند:</b></td>
+                            <td><div id="Comb_USERID" class="fonclass"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>تاریخ :</b></td>
+                            <td><input type="text" name="D_Date" id="D_Date" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>مبلغ پیش پرداخت:</b></td>
+                            <td><div id="N_Amount"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>مبلغ کسرات ماهانه:</b></td>
+                            <td><div id="N_DeductedAmount"></div></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" align="center">
+                                <br />
+                                <input type="hidden" name="PrepaidID" id="PrepaidID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="popupWindow2">
+    <div class="fonclass">حذف معلومات</div>
+    <div style="overflow: hidden;">
+        <table>
+            <tr>
+                <td colspan="2">
+                    <b class="fonclass">آیا با حذف کردن موافق هستید؟</b>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"></td>
+                <td style="padding-top: 10px;" align="center">
+                    <input style="margin-right: 5px;" type="button" class="fonclass" id="ok" value="بلی" onclick="deleteRecord();" />
+                    <input id="Cancel2" type="button" class="fonclass" value="نخیر" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Insert">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">جدید</span>
+        </li>
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+    </ul>
+</div>

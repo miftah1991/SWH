@@ -1,0 +1,285 @@
+﻿@{
+    ViewBag.Title = "GetDepartments";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<style type="text/css">
+    .redClass {
+        background-color: #F8C0C0;
+    }
+
+    .ApprovedClass {
+        background-color: #b3e0ff;
+    }
+
+    .greenClass {
+        background-color: Green;
+    }
+
+    .blueClass {
+        background-color: Blue;
+        color: white;
+    }
+
+    .grayClass {
+        background-color: #c1c1c1;
+    }
+
+    .btn-danger {
+        color: #fff;
+        background-color: #d9534f;
+        border-color: #d43f3a;
+    }
+
+        .btn-danger.focus, .btn-danger:focus {
+            color: #fff;
+            background-color: #c9302c;
+            border-color: #761c19;
+        }
+
+        .btn-danger:hover {
+            color: #fff;
+            background-color: #c9302c;
+            border-color: #ac2925;
+        }
+
+    .btn-success {
+        color: #fff;
+        background-color: #5cb85c;
+        border-color: #4cae4c;
+    }
+</style>
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGrid('Position');
+        setInputsDr(["PositionName", "PositionCode","Remarks"], 300, 30);
+        setSubmitBtn("Save", 90, 30);
+        setCancelBtn("Cancel", 90, 30);
+        HideModal('close', 'Cancel', 'frmPosition', 'myModal');
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        makeContextMenu('CMenu', 'Position', 150, 90);
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#Position").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                var dataRecord = $("#Position").jqxGrid('getrowdata', rowindex);
+                EditInputs(["PositionName", "PositionCode", "Remarks","PositionID"], dataRecord);
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if(varMenuItem =="جدید")
+            {
+                AddBClick();
+            }
+        });
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#PositionID").val() == '' || $("#PositionID").val() == null) ? '@Url.Action("Create")' : '@Url.Action("Edit")';
+                    if ($("#PositionID").val() == '') {
+                        $("#PositionID").remove();
+                    }
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmPosition').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModal').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#Position').jqxGrid('updatebounddata', 'data');
+                                $('#frmPosition').append("<input type='hidden' id='PositionID' name='PositionID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModal').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#Position').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmPosition').jqxValidator('validate', validationResult)
+        });
+
+        $('#frmPosition').jqxValidator({
+            hintType: 'label',
+            animationDuration: 0,
+            rtl:true,
+            rules: [
+            { input: '#PositionName', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#PositionCode', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' }
+            ], theme: 'darkblue'
+        });
+        setAddBtn('AddNew', 'ltr', 100, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+
+
+
+
+
+
+    });
+    function AddBClick()
+    {
+        clearInputs(["PositionName", "PositionCode", "Remarks", "PositionID"]);
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+                        { text: 'بست', dataField: 'PositionName', width: '30%', cellsalign:'right', align: 'right' ,cellclassname: cellclassname},
+                        { text: 'کود بست', dataField: 'PositionCode', width: '30%', cellsalign: 'right', align: 'right' ,cellclassname: cellclassname},
+                        { text: 'ملاحظات', dataField: 'Remarks', width: '40%', cellsalign: 'right', align: 'right' ,cellclassname: cellclassname},
+
+
+                ]
+
+            });
+        var datafields = [
+                  { name: 'PositionName' },
+                  { name: 'PositionCode' },
+                  { name: 'Remarks' },
+                  { name: 'PositionID' },
+
+        ];
+
+        fillGrid(datafields, varGridName, '/Position/GetPosition');
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#Position").jqxGrid('getselectedrowindex');
+        var rowid = $("#Position").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#Position").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")'+dataRecord.PositionID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#Position').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        بست
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="بست جدید" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="Position"></div>
+        </div>
+    </div>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">بست جدید</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmPosition">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>اسم بست:</b></td>
+                            <td><input type="text" name="PositionName" id="PositionName" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>کود بست:</b></td>
+                            <td><input type="text" name="PositionCode" id="PositionCode" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>ملاحظات:</b></td>
+                            <td><input type="text" name="Remarks" id="Remarks" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" align="center">
+                                <br />
+                                <input type="hidden" name="PositionID" id="PositionID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="popupWindow2">
+    <div class="fonclass">حذف معلومات</div>
+    <div style="overflow: hidden;">
+        <table>
+            <tr>
+                <td colspan="2">
+                    <b class="fonclass">آیا با حذف کردن موافق هستید؟</b>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"></td>
+                <td style="padding-top: 10px;" align="center">
+                    <input style="margin-right: 5px;" type="button" class="fonclass" id="ok" value="بلی" onclick="deleteRecord();" />
+                    <input id="Cancel2" type="button" class="fonclass" value="نخیر" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Insert">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">جدید</span>
+        </li>
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+    </ul>
+</div>

@@ -1,0 +1,284 @@
+﻿@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script src="~/Scripts/calender/jquery.calendars.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.plus.js"></script>
+<link href="~/Scripts/calender/jquery.calendars.picker.css" rel="stylesheet" />
+<script src="~/Scripts/calender/jquery.plugin.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.picker.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.persian.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var calendar = $.calendars.instance('persian');
+        var varDateFields = ["D_GEDate"];
+        makeDates(varDateFields, "frmGulsazeExpenses", 'rtl');
+        setGrid('GulsazeExpenses'); 
+        setInputsDr(["D_GEDate", "GEQuantity", "GEPricePerUnit", "GERemarks", "GEID"], 300, 30);
+        setCombo('#Comb_GEMID', '@Url.Action("GetGEM")', 'GEMID', 'GEMName', 30, 300, 1);
+        //setCombo('#Comb_CCID', '@Url.Action("GetCategoryClass")', 'CCID', 'CCName', 30, 300, 1);
+        makeCombHidden(["Comb_GEMID"], 'frmGulsazeExpenses');
+        setSubmitBtn("Save", 90, 30);
+        setCancelBtn("Cancel", 90, 30);
+        HideModal('close', 'Cancel', 'frmGulsazeExpenses', 'myModal');
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        makeContextMenu('CMenu', 'GulsazeExpenses', 150, 90);
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#GulsazeExpenses").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                var dataRecord = $("#GulsazeExpenses").jqxGrid('getrowdata', rowindex);
+                EditInputs(["GEID", "GEMID", "GEPricePerUnit", "GEQuantity", "GEDate", "GERemarks"], dataRecord);
+
+                $("#GEMID").val(dataRecord.GEMID);
+                $("#Comb_GEMID").val(dataRecord.GEMName);
+                $("#D_GEDate").val(dataRecord.GEDateDr);
+                
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if(varMenuItem =="جدید")
+            {
+                AddBClick();
+            }
+        });
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#GEID").val() == '' || $("#GEID").val() == null) ? '@Url.Action("Create")' : '@Url.Action("Edit")';
+                    if ($("#GEID").val() == '') {
+                        $("#GEID").remove();
+                    }
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmGulsazeExpenses').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModal').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#GulsazeExpenses').jqxGrid('updatebounddata', 'data');
+                                $('#frmGulsazeExpenses').append("<input type='hidden' id='GEID' name='GEID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModal').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#GulsazeExpenses').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmGulsazeExpenses').jqxValidator('validate', validationResult)
+        });
+
+        $('#frmGulsazeExpenses').jqxValidator({
+            hintType: 'label',
+            animationDuration: 0,
+            rtl:true,
+            rules: [
+                {
+                    input: '#Comb_GEMID', message: '  ضروری ! ', action: 'select blur', rule: function (input)
+                    { var val = $("#Comb_GEMID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+            { input: '#D_GEDate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#GEQuantity', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#GEPricePerUnit', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' }
+            ], theme: 'darkblue'
+        });
+
+        setAddBtn('AddNew', 'ltr', 100, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+
+
+
+
+
+
+    });
+    function AddBClick()
+    {
+        clearInputs(["GEID", "GEMID", "GEPricePerUnit", "GEQuantity", "GERemarks", "GEDate", "D_GEDate", "Comb_GEMID"]);
+        $("#Comb_GEMID").jqxComboBox('clearSelection');
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+                        { text: 'تاریخ', dataField: 'GEDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'اسم جنس', dataField: 'GEMName', width: '30%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مقدار', dataField: 'GEQuantity', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'قیمت فی واحد', dataField: 'GEPricePerUnit', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مجموعه', dataField: 'Total', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ملاحظات', dataField: 'GERemarks', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        var datafields = [
+                  { name: 'GEID' },
+                  { name: 'GEMID' },
+                  { name: 'GEPricePerUnit' },
+                  { name: 'GEQuantity' },
+                  { name: 'GEDate' },
+                  { name: 'GERemarks' },
+
+                  { name: 'GEMName' },
+                  { name: 'Unit' },
+                  { name: 'Remarks' },
+                  { name: 'GEDateDr' },
+                  { name: 'Total' },
+
+
+
+        ];
+
+        fillGrid(datafields, varGridName, '/GulsazeExpenses/GetData');
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#GulsazeExpenses").jqxGrid('getselectedrowindex');
+        var rowid = $("#GulsazeExpenses").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#GulsazeExpenses").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")'+dataRecord.CIID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#GulsazeExpenses').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        مصارف گلسازی
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="مصرف جدید" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="GulsazeExpenses"></div>
+        </div>
+    </div>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">مصرف جدید</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmGulsazeExpenses">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>تاریخ:</b></td>
+                            <td><input type="text" id="D_GEDate" class="is-dateickeer" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>مصارف:</b></td>
+                            <td><div id="Comb_GEMID" class="fonclass"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>مقدار:</b></td>
+                            <td><input type="text" name="GEQuantity" id="GEQuantity" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>قیمت فی واحد:</b></td>
+                            <td><input type="text" name="GEPricePerUnit" id="GEPricePerUnit" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>ملاحظات:</b></td>
+                            <td><input type="text" name="GERemarks" id="GERemarks" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" align="center">
+                                <br />
+                                <input type="hidden" name="GEID" id="GEID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="popupWindow2">
+    <div class="fonclass">حذف معلومات</div>
+    <div style="overflow: hidden;">
+        <table>
+            <tr>
+                <td colspan="2">
+                    <b class="fonclass">آیا با حذف کردن موافق هستید؟</b>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"></td>
+                <td style="padding-top: 10px;" align="center">
+                    <input style="margin-right: 5px;" type="button" class="fonclass" id="ok" value="بلی" onclick="deleteRecord();" />
+                    <input id="Cancel2" type="button" class="fonclass" value="نخیر" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Insert">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">جدید</span>
+        </li>
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+    </ul>
+</div>

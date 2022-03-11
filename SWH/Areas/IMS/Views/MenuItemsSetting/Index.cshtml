@@ -1,0 +1,268 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGrid('Setting');
+        setCombo('#Comb_MID', '@Url.Action("GetMenu","Booking")', 'MID', 'Name', 30, 100, 0);
+        setCombo('#Comb_CIID', '@Url.Action("GetCategoryItem", "Order")', 'CIID', 'CIName', 30, 200, 0);
+        makeCombHidden(["Comb_MID", "Comb_CIID"], "frmSetting");
+        setInput("Person", 100, 30);
+        setInputsDr(["Remarks"], 200, 30);
+        setInputNumber("MI_Amount", 200, 30);
+        makeNumberHidden(["MI_Amount"], "frmSetting")
+        setSubmitBtn("Save", 100, 30);
+        makeContextMenu('CMenu', 'Setting', 150, 90);
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#Setting").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'اصلاح') {
+                var dataRecord = $("#Setting").jqxGrid('getrowdata', rowindex);
+                //alert(JSON.stringify(dataRecord));
+                $("#MISID").val(dataRecord.MISID);
+                $("#MID").val(dataRecord.MID);
+                $("#CIID").val(dataRecord.CIID);
+                $("#Comb_MID").val(dataRecord.MenuName);
+                $("#Comb_CIID").val(dataRecord.CIName);
+                $("#Person").val(dataRecord.Person);
+                $("#MI_Amount").val(dataRecord.Amount);
+                $("#Amount").val(dataRecord.Amount);
+                $("#Remarks").val(dataRecord.Remarks);
+                //console.log("BDate:" + dataRecord.Date);
+
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if (varMenuItem == "جدید") {
+                AddBClick();
+            } else if (varMenuItem == "پرنت") {
+                var dataRecord = $("#Setting").jqxGrid('getrowdata', rowindex);
+                var MID = dataRecord.MID;
+                var url = '/Areas/IMS/Reports/MenuPrint.aspx?MID=' + MID;
+                window.open(url, "_blank")
+
+            }
+        });
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#MISID").val() == '' || $("#MISID").val() == null) ? '@Url.Action("CreateSetting")' : '@Url.Action("EditSetting")';
+                    if ($("#MISID").val() == '') {
+                        $("#MISID").remove();
+                    }
+
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmSetting').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                clearInputs(["Amount", "MI_Amount", "Person", "Remarks"]);
+                                clearCombs(["Comb_MID", "Comb_CIID"]);
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#Setting').jqxGrid('updatebounddata', 'data');
+                                $('#frmSetting').append("<input type='hidden' id='MISID' name='CIID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                clearInputs(["Amount", "MI_Amount", "Person", "Remarks"]);
+                                clearCombs(["Comb_MID", "Comb_CIID"]);
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#Setting').jqxGrid('updatebounddata', 'data');
+                            } else if (result == "AlreadyExist") {
+                                toastr["warning"]('جنس انتخاب شده برای مینو مذکور از قبل تنظیم شده');
+
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmSetting').jqxValidator('validate', validationResult)
+        });
+        $('#frmSetting').jqxValidator({
+            hintType: 'label',
+            //animationDuration: 0,
+            rtl: true,
+            rules: [
+                {
+                    input: '#Comb_MID', message: '  حتمی ! ', action: 'blur', rule: function (input)
+                    { var val = $("#Comb_MID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+                {
+                    input: '#Comb_CIID', message: '  حتمی ! ', action: 'blur', rule: function (input)
+                    { var val = $("#Comb_CIID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+              { input: '#MI_Amount', message: 'حتمی!', action: 'blur', rule: function (input, commit) { var value = $('#MI_Amount').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+              { input: '#Person', message: '  حتمی!  ', action: 'keyup, blur', rule: 'required' },
+
+            ], theme: 'darkblue'
+        });
+        //End od DOCUMENT Ready Function
+    });
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'مینو', dataField: 'MenuName', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'جنس', dataField: 'CIName', width: '20%', cellsformat: 'dd-MMM-yyyy', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تعداد', dataField: 'Person', cellsformat: 'd', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مقدار', dataField: 'Amount', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ملاحظات', dataField: 'Remarks', width: '30%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+
+        fillGrids(varGridName);
+    }
+    function fillGrids(varGridName) {
+        var source =
+        {
+            datatype: "json",
+            datafields: [
+                  { name: 'MISID' },
+                  { name: 'MID' },
+                  { name: 'MenuName' },
+                  { name: 'CIID' },
+                  { name: 'CIName' },
+                  { name: 'Person' },
+                  { name: 'Amount' },
+                  { name: 'Remarks' },
+
+
+            ],
+            cache: false,
+            url: ('/IMS/MenuItemsSetting/GetData'),
+            root: 'Rows'
+        };
+
+        var dataadapter = new $.jqx.dataAdapter(source, {
+            loadError: function (xhr, status, error) {
+                console.log(error);
+            }
+        }
+        );
+
+        $('#' + varGridName).jqxGrid(
+        {
+            source: dataadapter
+        });
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#Setting").jqxGrid('getselectedrowindex');
+        var rowid = $("#Setting").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#Setting").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")' + dataRecord.MISID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#Setting').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        تنظیمات تعداد اجناس به اساس مینو
+        @*<input type="button" class="btn-success pull-left fonclass" id="AddNew" value="تظیم جدید" />*@
+    </div>
+    <div class="panel-body">
+
+        <div class="table-responsive">
+            <div id="add">
+                <form id="frmSetting">
+                    <table class="table table-striped" dir="rtl" width="98%">
+                        <tr>
+                            <td><b>مینو</b></td>
+                            <td><b>جنس</b></td>
+                            <td><b>تعداد</b></td>
+                            <td><b>مقدار</b></td>
+                            <td><b>ملاحظات</b></td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td><div id="Comb_MID"></div></td>
+                            <td><div id="Comb_CIID"></div></td>
+                            <td><input type="text" name="Person" id="Person" class="fonclass" /></td>
+                            <td><input type="text" name="MI_Amount" id="MI_Amount" class="fonclass" /></td>
+                            <td>
+                                <input type="text" name="Remarks" id="Remarks" class="fonclass" />
+                                <input type="hidden" name="MISID" id="MISID"/>
+                            </td>
+                            <td><button id="Save" type="button" class="fonclass btn-primary">ثبت</button></td>
+                        </tr>
+                    </table>
+                    </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="Setting"></div>
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">اصلاح</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/print.png" class="pull-right" />
+            <span class="fonclass">پرنت</span>
+        </li>
+    </ul>
+</div>
+<div id="popupWindow2">
+    <div class="fonclass">حذف معلومات</div>
+    <div style="overflow: hidden;">
+        <table>
+            <tr>
+                <td colspan="2">
+                    <b class="fonclass">آیا با حذف کردن موافق هستید؟</b>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"></td>
+                <td style="padding-top: 10px;" align="center">
+                    <input style="margin-right: 5px;" type="button" class="fonclass" id="ok" value="بلی" onclick="deleteRecord();" />
+                    <input id="Cancel2" type="button" class="fonclass" value="نخیر" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>

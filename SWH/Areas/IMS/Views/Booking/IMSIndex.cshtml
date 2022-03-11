@@ -1,0 +1,1556 @@
+﻿@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        var PCurrentYear = '@ViewBag.PCurrentYear';
+        var PCurrentMonth = '@ViewBag.PCurrentMonth';
+        setGrid('Booking');
+        fillGrid('Booking', PCurrentYear, PCurrentMonth);
+        setCombo('#Comb_MonthID', '@Url.Action("GetMonth/")', 'MonthYearVal', 'MonthYearName', 30, 100, 0);
+        $('#Comb_MonthID').bind('select', function (event) {
+            if (event.args) {
+                var valuee = event.args.item.value;
+                string_to_array = function (str) {
+                    return str.trim().split("-");
+                };
+                nvalue = string_to_array(valuee)
+                var Month = nvalue[0];
+                var Year = nvalue[1];
+                fillGrid('Booking', Year, Month);
+
+            }
+        });
+        setGridExpandable('ExpandableSettingItems');
+        setGridNonExpandable('NonExpandableSettingItems');
+        setGridPayment('BookingPayment');
+        $('#Booking').jqxGrid({ rowsheight: 55 });
+        makeContextMenu('CMenu', 'Booking', 210, 210);
+        makeContextMenu('CMenuPayment', 'BookingPayment', 210, 60);
+
+
+
+        setCombo('#Comb_CancelAmountCID', '@Url.Action("GetCurrency/")', 'CRID', 'CRName', 30, 60, 0);
+        setCombo('#Comb_PrePaidCurrencyID', '@Url.Action("GetCurrency/")', 'CRID', 'CRName', 30, 60, 0);
+        setCombo('#Comb_CRID', '@Url.Action("GetCurrency/")', 'CRID', 'CRName', 30, 200, 0);
+        setCombo('#Comb_MID', '@Url.Action("GetMenu/")', 'MID', 'Name', 30, 200, 0);
+        $('#Comb_MID').bind('select', function (event) {
+            if (event.args) {
+                var valuee = event.args.item.value;
+                GetMenuPrice(valuee);
+            }
+        });
+        $(".closeEx,#CancelExpandable").click(function () {
+            $("#myModalExpandable").modal('hide');
+        });
+        $(".closePm").click(function () {
+            $("#myModalPayment").modal('hide');
+        });
+        $(".closeCan").click(function () {
+            $("#myModalCancel").modal('hide');
+        });
+        $(".closeNonEx,#CancelNonExpandable").click(function () {
+            $("#myModalNonExpandable").modal('hide');
+        });
+        HideModal('close', 'Cancel', 'frmBooking', 'myModalBooking');
+        makeCombHidden(["Comb_MID", "Comb_PrePaidCurrencyID"], 'frmBooking');
+        makeCombHidden(["Comb_CRID"], 'frmBookingPayment');
+        makeCombHidden(["Comb_CancelAmountCID"], 'frmBookingCan');
+        setInputsDr(["CancelRemarks", "CancelReason", "CancelAmountExchange", "CLBookedGuest", "ActualGuest", "ServiceCharge", "ExchangeRate", "RemarksPayment", "BDate", "BHName", "MenuPrice", "CustomerName", "CustomerMobile", "CustomerEmail", "BookedGuest", "BookingNumber", "BookingRemarks", "PrePaidExchangeRate"], 200, 30);
+        setInputNumber("Comb_PrePaidAmount", 200, 30);
+        setInputNumber("Comb_CancelAmount", 200, 30);
+        setInputNumber("BP_Amount", 200, 30);
+        makeNumberHidden(["BP_Amount"], 'frmBookingPayment')
+        makeNumberHidden(["Comb_PrePaidAmount"], 'frmBooking');
+        makeNumberHidden(["Comb_CancelAmount"], 'frmBookingCan');
+        setSubmitBtn('CalculateMenuPrice', 200, 30);
+        setSubmitBtn('Save', 200, 30);
+        setCancelBtn('Cancel', 200, 30);
+        setSubmitBtn('SaveExpandable', 200, 30);
+        setCancelBtn('CancelExpandable', 200, 30);
+        setSubmitBtn('SaveNonExpandable', 200, 30);
+        setSubmitBtn('SavePayment', 100, 30);
+        setCancelBtn('CancelNonExpandable', 200, 30);
+        setSubmitBtn('SaveClBooking', 200, 30);
+        setSubmitBtn('SaveCANBooking', 200, 30);
+        setCancelBtn('CancelClBooking', 200, 30);
+        setCancelBtn('CancelCANBooking', 200, 30);
+        var list = [];
+        $("#SaveClBooking").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = '/IMS/Booking/UpdateBooking';
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmBookingCL').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModalClearance').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                            }else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmBookingCL').jqxValidator('validate', validationResult)
+        });
+        $("#SaveCANBooking").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = '/IMS/Booking/CancelBooking';
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmBookingCan').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $("#CANBOOKINGID").val('');
+                                $('#myModalCancel').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                            } else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmBookingCan').jqxValidator('validate', validationResult)
+        });
+        $("#SavePayment").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#BPID").val() == '' || $("#BPID").val() == null) ? '/IMS/Booking/CreateBookingPayment' : '/IMS/Booking/EditBookingPayment';
+                    if ($("#BPID").val() == '') {
+                        $("#BPID").remove();
+                    }
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmBookingPayment').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModalBookingPayment').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#BookingPayment').jqxGrid('updatebounddata', 'data');
+                                $('#frmBookingPayment').append("<input type='hidden' id='BPID' name='BPID' />");
+                                clearCombs(["Comb_CRID"]);
+                                clearInputs(["BP_Amount", "Amount", "ExchangeRate", "RemarksPayment"])
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModalBooking').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#BookingPayment').jqxGrid('updatebounddata', 'data');
+                                clearCombs(["Comb_CRID"]);
+                                clearInputs(["BP_Amount", "Amount", "ExchangeRate", "RemarksPayment"])
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmBookingPayment').jqxValidator('validate', validationResult)
+        });
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    //CalculatePrePaid();
+                    var varURL = ($("#BOOKINGID").val() == '' || $("#BOOKINGID").val() == null) ? '/IMS/Booking/CreateBooking' : '/IMS/Booking/EditBooking/';
+                    if ($("#BOOKINGID").val() == '') {
+                        $("#BOOKINGID").remove();
+                    }
+
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmBooking').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModalBooking').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#Booking').jqxGrid('updatebounddata', 'data');
+                                $('#frmBooking').append("<input type='hidden' id='BOOKINGID' name='BOOKINGID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModalBooking').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#Booking').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmBooking').jqxValidator('validate', validationResult)
+        });
+        $("#SaveExpandable").click(function () {
+            list = [];
+            if ($("#ExapandableBOOKINGID").val() == '') {
+                toastr["error"]("لطفا بوکنگ را انتخاب نماید");
+                return;
+            }
+            var varURL = '/IMS/Booking/SaveExpandable/';
+            var rows = $('#ExpandableSettingItems').jqxGrid('selectedrowindexes');
+            for (var i = 0; i < rows.length; i++) {
+                var dataRecord = $("#ExpandableSettingItems").jqxGrid('getrowdata', rows[i]);
+                if (dataRecord.CostPerUnit == null || dataRecord.CostPerUnit == 0)
+                {
+                    toastr["error"]("قیمت های اجناس را وارد نماید");
+                    return;
+                }
+                var OrderItems = {
+                    CIID: dataRecord.CIID,
+                    OIQuantity: dataRecord.SettingCount,
+                    OIPricePerUnit: dataRecord.CostPerUnit,
+                }
+                list.push(OrderItems);
+            }
+            var data = {
+                BOOKINGID: $("#ExapandableBOOKINGID").val(),
+                ORemarks:'Order By System For Expandable Items',
+                OCode: $("#ExapandableBOOKINGID").val(),
+                OrderItems: list
+            }
+            console.log(JSON.stringify(data));
+            $.ajax(
+                   {
+                       url: varURL,
+                       contentType: 'application/json;',
+                       dataType: 'json',
+                       type: 'post',
+                       data: JSON.stringify(data),
+                       success: function (result) {
+                           if (result == "saved") {
+                               toastr["success"]("معلومات موفقانه درج سیستم گردید");
+                               $("#myModalExpandable").modal('hide');
+                               $('#ExpandableSettingItems').jqxGrid('clearselection');
+                               var URL = '/IMS/Booking/GetCalculatedMenuPrice?MID=' + 0 + '&&BookedGuest=' + 0 + '&&BOOKINGID=' + 0;
+                               fillGridExpandable('ExpandableSettingItems', URL);
+                               //$('#Orders').jqxGrid('updatebounddata', 'data');
+                           } else if (result == "updated") {
+                               toastr["success"]("معلومات موفقانه اصلاح گردید");
+                               $("#myModal").modal('hide');
+                               $('#Orders').jqxGrid('updatebounddata', 'data');
+                           }
+                           else {
+                               toastr["error"]("An error occured please check the form!<br />" + result);
+                           }
+                       }
+                   });
+        });
+        $("#SaveNonExpandable").click(function () {
+            list = [];
+            if ($("#NonExapandableBOOKINGID").val() == '') {
+                toastr["error"]("لطفا بوکنگ را انتخاب نماید");
+                return;
+            }
+            var varURL = '/IMS/Booking/SaveNonExpandable';
+            var rows = $('#NonExpandableSettingItems').jqxGrid('selectedrowindexes');
+            for (var i = 0; i < rows.length; i++) {
+                var dataRecord = $("#NonExpandableSettingItems").jqxGrid('getrowdata', rows[i]);
+                if (dataRecord.OIPricePerUnit == null || dataRecord.OIPricePerUnit == 0)
+                {
+                    toastr["error"]("قیمت های اجناس را وارد نماید");
+                    return;
+                } if ($("#IsEdit").val() == 0) {
+                    if (dataRecord.SettingCount > dataRecord.OIQuantity) {
+                        toastr["error"]("مقدار جنس در گدام موجود نمیباشد");
+                        return;
+                    }
+                }
+                var OrderItems = {
+                    OIID:dataRecord.OIID,
+                    CIID: dataRecord.CIID,
+                    OIQuantity: dataRecord.SettingCount,
+                    OIPricePerUnit: dataRecord.OIPricePerUnit,
+                }
+                list.push(OrderItems);
+            }
+            var data = {
+                BOOKINGID: $("#NonExapandableBOOKINGID").val(),
+                ORemarks:'Order By System For Expandable Items',
+                OCode: $("#NonExapandableBOOKINGID").val(),
+                OrderItems: list
+            }
+            console.log(JSON.stringify(data));
+            $.ajax(
+                   {
+                       url: varURL,
+                       contentType: 'application/json;',
+                       dataType: 'json',
+                       type: 'post',
+                       data: JSON.stringify(data),
+                       success: function (result) {
+                           if (result == "saved") {
+                               toastr["success"]("معلومات موفقانه درج سیستم گردید");
+                               $("#myModalNonExpandable").modal('hide');
+                               $('#NonExpandableSettingItems').jqxGrid('clearselection');
+                               var URL ='/IMS/Booking/GetCalculatedMenuPriceNonEx?MID=' + 0 + '&&BookedGuest=' + 0;
+                               fillGridNonExpandable('NonExpandableSettingItems', URL);
+                               $("#IsEdit").val('0');
+                               //$('#Orders').jqxGrid('updatebounddata', 'data');
+                           } else if (result == "updated") {
+                               toastr["success"]("معلومات موفقانه اصلاح گردید");
+                               $("#myModal").modal('hide');
+                               $('#Orders').jqxGrid('updatebounddata', 'data');
+                           }
+                           else {
+                               toastr["error"]("An error occured please check the form!<br />" + result);
+                           }
+                       }
+                   });
+        });
+        $('#Booking').on('cellclick', function (event) {
+            //console.log("A cell has been clicked:" + event.args.rowindex + ":" + event.args.datafield);
+            $("#BHName").val(GetBookingHall(event.args.datafield));
+            $("#BHID").val(GetBHID(event.args.datafield));
+        });
+        $("#CMenuPayment").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#BookingPayment").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'اصلاح') {
+                var dataRecord = $("#BookingPayment").jqxGrid('getrowdata', rowindex);
+                $("#BPID").val(dataRecord.BPID);
+                $("#CRID").val(dataRecord.CRID)
+                $("#Comb_CRID").val(dataRecord.CRName);
+                $("#BP_Amount").val(dataRecord.Amount)
+                $("#Amount").val(dataRecord.Amount);
+                $("#ExchangeRate").val(dataRecord.ExchangeRate);
+                $("#RemarksPayment").val(dataRecord.Remarks);
+            }
+        });
+        $("#CalculateMenuPrice").click(function () {
+            var MID = $("#NonExMID").val();
+            var BookedGuest = $("#PrePerson").val();
+            var URL = '/IMS/Booking/GetCalculatedMenuPriceNonEx?MID=' + MID + '&&BookedGuest=' + BookedGuest;
+            fillGridNonExpandable('NonExpandableSettingItems', URL);
+        })
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#Booking").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'بوکنگ جدید') {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                //alert(JSON.stringify(dataRecord));
+                $("#BDate").val(moment(dataRecord.Date).format("YYYY-MMM-DD"));
+                $("#Date").val(moment(dataRecord.Date).format("YYYY-MM-DD"));
+
+                console.log("BDate:" + dataRecord.Date);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                var varBOOKINGID = CheckForBooking(BHID, Date);
+                if (varBOOKINGID >1) {
+                    toastr["error"]("در تاریخ و حال مذکور بوکنگ موجود میباشد");
+                    return;
+                } else {
+                    $("#BOOKINGID").val('');
+                    clearCombs(["Comb_MID", "Comb_PrePaidCurrencyID"]);
+                    var BookingCode = GetBookingNumber();
+                    $("#BookingNumber").val(BookingCode);
+                    clearInputs(["MID", "PrePaidCurrencyID", "CustomerName", "CustomerMobile", "CustomerEmail", "BookedGuest", "MenuPrice", "BookingRemarks", "Comb_PrePaidAmount", "PrePaidAmount", "PrePaidExchangeRate"])
+                    $('#myModalBooking').modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                }
+            } else if (varMenuItem == "اضافه حواله مواد مصرفی") {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                GetBOOKINGID(BHID, Date);
+                BookingID = $("#ExapandableBOOKINGID").val();
+                var excount = CheckExpandableForInsert(BookingID);
+                if (excount > 0) {
+                    toastr["error"]("حواله مواد مصرفی از قبل درج سیستم گردیده است ");
+                    return;
+                }
+                $("#ExDate").text(moment(dataRecord.Date).format("YYYY-MMM-DD"));
+                $("#ExBookingHall").text($("#BHName").val());
+                var MID= $("#ExMID").val();
+                var BookedGuest = $("#ExBokedGuest").val();
+                var URL = '/IMS/Booking/GetCalculatedMenuPrice?MID=' + MID + '&&BookedGuest=' + BookedGuest;
+                fillGridExpandable('ExpandableSettingItems', URL);
+                
+                $('#myModalExpandable').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }
+            else if (varMenuItem == "اصلاح حواله مواد مصرفی") {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                GetBOOKINGID(BHID, Date);
+                BookingID = $("#ExapandableBOOKINGID").val();
+                var excount = CheckExpandableForInsert(BookingID);
+                if (excount < 1) {
+                    toastr["error"]("حواله مواد مصرفی باید درج گردد بعدا قابل اصلاح میباشد");
+                    return;
+                }
+                $("#ExDate").text(moment(dataRecord.Date).format("YYYY-MMM-DD"));
+                $("#ExBookingHall").text($("#BHName").val());
+                var MID = $("#ExMID").val();
+                var BookedGuest = $("#ExBokedGuest").val();
+                var URL = '/IMS/Booking/GetCalculatedMenuPriceEdit?MID=' + MID + '&&BookedGuest=' + BookedGuest + '&&BOOKINGID=' + BookingID;
+                fillGridExpandable('ExpandableSettingItems', URL);
+                var rows = $("#ExpandableSettingItems").jqxGrid('getrows');
+                for (var i = 0; i < rows.length; i++) {
+                   // alert(rows[i].CIName);
+                    if (rows[i].BIID > 0) {
+                        $('#ExpandableSettingItems').jqxGrid('selectrow', i);
+                    }
+                }
+                $('#myModalExpandable').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }else if(varMenuItem =="اضافه مواد گدام")
+            {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                GetBOOKINGID(BHID, Date);
+                BookingID = $("#NonExapandableBOOKINGID").val();
+                var excount = CheckNonExpandableForInsert(BookingID);
+                if (excount >0) {
+                    toastr["error"]("حواله مواد گدام از قبل درج سیستم گردیده است");
+                    return;
+                }
+                $("#NonExDate").text(moment(dataRecord.Date).format("YYYY-MMM-DD"));
+                $("#NonExBookingHall").text($("#BHName").val());
+                var MID = $("#NonExMID").val();
+                var BookedGuest = $("#NonExBokedGuest").val();
+                var URL = '/IMS/Booking/GetCalculatedMenuPriceNonEx?MID=' + MID + '&&BookedGuest=' + BookedGuest;
+                fillGridNonExpandable('NonExpandableSettingItems', URL);
+                $('#myModalNonExpandable').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if(varMenuItem == "اصلاح مواد گدام")
+            {
+                $("#IsEdit").val('1');
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                GetBOOKINGID(BHID, Date);
+                BookingID = $("#NonExapandableBOOKINGID").val();
+                var excount = CheckNonExpandableForInsert(BookingID);
+                if (excount <1) {
+                    toastr["error"]("حواله مواد گدام باید درج گردد بعدا قابل اصلاح میباشد");
+                    return;
+                }
+                $("#NonExDate").text(moment(dataRecord.Date).format("YYYY-MMM-DD"));
+                $("#NonExBookingHall").text($("#BHName").val());
+                var MID = $("#NonExMID").val();
+                var BookedGuest = $("#NonExBokedGuest").val();
+                var URL = '/IMS/Booking/GetCalculatedMenuPriceNonExEdit?MID=' + MID + '&&BookedGuest=' + BookedGuest+'&&BOOKINGID='+BookingID;
+                fillGridNonExpandable('NonExpandableSettingItems', URL);
+                var rows = $("#NonExpandableSettingItems").jqxGrid('getrows');
+                for (var i = 0; i < rows.length; i++) {
+                    //alert(rows[i].BIID);
+                    if (rows[i].BIID > 0) {
+                        $('#NonExpandableSettingItems').jqxGrid('selectrow', i);
+                    }
+                }
+                $('#myModalNonExpandable').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == 'اصلاح بوکنگ') {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                //alert(JSON.stringify(dataRecord));
+                $("#BDate").val(moment(dataRecord.Date).format("YYYY-MMM-DD"));
+                $("#Date").val(moment(dataRecord.Date).format("YYYY-MM-DD"));
+
+                console.log("BDate:" + dataRecord.Date);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                var varBOOKINGID = CheckForBooking(BHID, Date);
+                if (varBOOKINGID <1) {
+                    toastr["error"]("در تاریخ و حال مذکور بوکنگ موجود نمیباشد");
+                    return;
+                } else {
+                    $("#BOOKINGID").val(varBOOKINGID)
+                    GetBookingDetails(varBOOKINGID);
+                    $('#myModalBooking').modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                }
+            } else if (varMenuItem == 'پرداخت ها') {
+
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                var varBOOKINGID = CheckForBooking(BHID, Date);
+                var BHName = $("#BHName").val();
+                $("#PmDate").text(Date)
+                $("#PmBookingHall").text(BHName);
+                //BookingID = $("#NonExapandableBOOKINGID").val();
+                $("#BPBOOKINGID").val(varBOOKINGID);
+                fillGridPayment(varBOOKINGID);
+                $('#BookingPayment').jqxGrid('clearselection');
+                $("#BPID").val('');
+                clearCombs(["Comb_CRID"]);
+                clearInputs(["BP_Amount","Amount","ExchangeRate","RemarksPayment"])
+                $('#myModalPayment').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == 'محسوبی محفل') {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                var varBOOKINGID = CheckForBooking(BHID, Date);
+                var BHName = $("#BHName").val();
+                $("#CLDate").text(Date)
+                $("#CLBookingHall").text(BHName);
+                //BookingID = $("#NonExapandableBOOKINGID").val();
+                $("#CLBOOKINGID").val(varBOOKINGID);
+                GetBookingDetails(varBOOKINGID);
+                $('#myModalClearance').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == 'لغو بوکنگ') {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                var varBOOKINGID = CheckForBooking(BHID, Date);
+                var BHName = $("#BHName").val();
+                $("#CanDate").text(Date)
+                $("#BookingDate").val(Date);
+                $("#CanBookingHall").text(BHName);
+                //BookingID = $("#NonExapandableBOOKINGID").val();
+                $("#CANBOOKINGID").val(varBOOKINGID);
+                GetBookingDetails(varBOOKINGID);
+                $('#myModalCancel').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            }else if(varMenuItem =='پرنت راپور مصرفی')
+            {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                //var varBOOKINGID = CheckForBooking(BHID, Date);
+                var url = '/Areas/IMS/Reports/ExpandableDaily.aspx?BDate=' + Date;
+                window.open(url, "_blank")
+            } else if (varMenuItem == 'پرنت راپور فروشنده') {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                //var varBOOKINGID = CheckForBooking(BHID, Date);
+                var url = '/Areas/IMS/Reports/ExpandableOrder.aspx?BDate=' + Date;
+                window.open(url, "_blank")
+            }else if(varMenuItem =='پرنت مواد گدام')
+            {
+                var dataRecord = $("#Booking").jqxGrid('getrowdata', rowindex);
+                var BHID = $("#BHID").val();
+                var Date = moment(dataRecord.Date).format("YYYY-MM-DD");
+                //var varBOOKINGID = CheckForBooking(BHID, Date);
+                var url = '/Areas/IMS/Reports/NonExpandableDaily.aspx?BDate=' + Date;
+                window.open(url, "_blank")
+            }
+        });
+
+        $('#frmBooking').jqxValidator({
+            hintType: 'label',
+            //animationDuration: 0,
+            rtl: true,
+            rules: [
+                {
+                    input: '#Comb_MID', message: '  ضروری ! ', action: 'blur', rule: function (input)
+                    { var val = $("#Comb_MID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+                {
+                    input: '#Comb_PrePaidCurrencyID', message: '  ضروری ! ', action: 'blur', rule: function (input)
+                    { var val = $("#Comb_PrePaidCurrencyID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+              { input: '#BDate', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#BDate').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+              { input: '#Comb_PrePaidAmount', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#Comb_PrePaidAmount').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+              { input: '#MenuPrice', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+              { input: '#CustomerName', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+              { input: '#CustomerMobile', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+              { input: '#PrePaidExchangeRate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+              { input: '#BookedGuest', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+
+            ], theme: 'darkblue'
+        });
+        $('#frmBookingPayment').jqxValidator({
+            hintType: 'label',
+            //animationDuration: 0,
+            rtl: true,
+            rules: [
+                {
+                    input: '#Comb_CRID', message: '  ضروری ! ', action: 'blur', rule: function (input)
+                    { var val = $("#Comb_CRID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+
+              { input: '#BP_Amount', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#BP_Amount').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+              { input: '#ExchangeRate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+
+            ], theme: 'darkblue'
+        });
+        $('#frmBookingCan').jqxValidator({
+            hintType: 'label',
+            //animationDuration: 0,
+            rtl: true,
+            rules: [
+                {
+                    input: '#Comb_CancelAmountCID', message: '  ضروری ! ', action: 'blur', rule: function (input)
+                    { var val = $("#Comb_CancelAmountCID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+
+              { input: '#Comb_CancelAmount', message: 'ضروری!', action: 'blur', rule: function (input, commit) { var value = $('#Comb_CancelAmount').val(); if (value == '' || value == null || value == 0 || value === undefined) { return false; } return true; } },
+              { input: '#CancelReason', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+
+            ], theme: 'darkblue'
+        });
+        $('#frmBookingCL').jqxValidator({
+            hintType: 'label',
+            //animationDuration: 0,
+            rtl: true,
+            rules: [
+              { input: '#ActualGuest', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+              { input: '#ServiceCharge', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+
+            ], theme: 'darkblue'
+        });
+        //End od DOCUMENT Ready Function
+    });
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+        var cellrender = function (row, column, value, data) {
+            string_to_array = function (str) {
+                return str.trim().split(",");
+            };
+            nvalue=string_to_array(value)
+            if (nvalue[3] == 'منتظر') {
+                return "<div style='overflow: hidden; white-space: nowrap; height: 265px;text-align:right;margin-right:5px;color:red;'>" +
+                nvalue[0] +
+                "<div>" + nvalue[1] + "</div>" +
+                "<div>" + nvalue[2] + "</div>" +
+                "</div>";
+            } else {
+
+            return "<div style='overflow: hidden; white-space: nowrap; height: 265px;text-align:right;margin-right:5px;'>" +
+                nvalue[0] +
+                "<div>" + nvalue[1] + "</div>" +
+                "<div>" + nvalue[2] + "</div>" +
+                "</div>";
+            }
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: false,
+                //pagermode: 'simple',
+                showfilterrow: false,
+                filterable: false,
+                selectionmode:'singlecell',
+                //rowsheight :'35px',
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                columns: [
+                        { text: 'تاریخ', dataField: 'Date', width: '10%',height:'50%', cellsalign: 'right', align: 'right', cellsformat: 'dd-MMM-yyyy', cellclassname: cellclassname },
+                        { text: 'ایام', dataField: 'DayName', width: '7%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'شمسی', dataField: 'PDay', width: '5%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+                        { text: 'انترنیشنل', dataField: 'T1International', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname,cellsrenderer:cellrender, columngroup: 'T1' },
+                        { text: 'الماس', dataField: 'T1Almas', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, cellsrenderer: cellrender, columngroup: 'T1' },
+                        { text: 'کاپیتال', dataField: 'T1Capital', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, cellsrenderer: cellrender, columngroup: 'T1' },
+
+                        { text: 'انترنیشنل', dataField: 'T2International', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, cellsrenderer: cellrender, columngroup: 'T2' },
+                        { text: 'الماس', dataField: 'T2Almas', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, cellsrenderer: cellrender, columngroup: 'T2' },
+                        { text: 'کاپیتال', dataField: 'T2Capital', width: '13%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, cellsrenderer: cellrender, columngroup: 'T2' },
+
+
+                ],
+                columngroups:
+				[
+				  { text: 'تایم اول', align: 'center', name: 'T1' },
+				  { text: 'تایم دوم', align: 'center', name: 'T2' },
+				]
+
+
+            });
+        //fillGrid(varGridName);
+    }
+    function setGridExpandable(varGridName)
+    {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: true,
+                editmode: 'click',
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                selectionmode: 'checkbox',
+                columns: [
+                        { text: 'اسم جنس', dataField: 'CIName', width: '30%', cellsalign: 'right', align: 'right', cellclassname: cellclassname,editable:false },
+                        { text: 'واحد جنس', dataField: 'CIUnit', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname,editable:false },
+                        { text: 'مقدار ضرورت', dataField: 'SettingCount', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname,editable:true },
+                        //{ text: 'مقدار تعدیل', dataField: 'NewCount', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: true },
+                        { text: 'قیمت فی واحد', dataField: 'CostPerUnit', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: true },
+                        { text: 'ملاحظات', dataField: 'CIRemarks', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+
+
+                ]
+
+            });
+    }
+    function setGridPayment(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                //editmode: 'click',
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                selectionmode: 'row',
+                columns: [
+                        { text: 'مقدار', dataField: 'Amount', width: '30%', cellsformat: 'd', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'واحد پولی', dataField: 'CRName', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'قیمت تبدیل', dataField: 'ExchangeRate', cellsformat: 'd', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: true },
+                        { text: 'پول به افغانی', dataField: 'AmountAf', cellsformat: 'd', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: true },
+                        { text: 'ملاحظات', dataField: 'Remarks', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+
+
+                ]
+
+            });
+    }
+    function setGridNonExpandable(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: true,
+                editmode: 'click',
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                selectionmode: 'checkbox',
+                columns: [
+                        { text: 'اسم جنس', dataField: 'CIName', width: '30%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'واحد جنس', dataField: 'CIUnit', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'مقدار موجود', dataField: 'OIQuantity', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'قیمت فی واحد', dataField: 'OIPricePerUnit', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'مقدار ضرورت', dataField: 'SettingCount', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: true },
+                        { text: 'ملاحظات', dataField: 'CIRemarks', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+
+
+                ]
+
+            });
+    }
+    function fillGridPayment(varBOOKINGID)
+    {
+        var URL = '/IMS/Booking/GetBookingPayment/' + varBOOKINGID
+            var source =
+            {
+                datatype: "json",
+                datafields: [
+                                { name: 'BPID', type: 'number' },
+                                { name: 'CRID', type: 'number' },
+                                { name: 'BOOKINGID', type: 'number' },
+                                { name: 'Amount', type: 'number' },
+                                { name: 'ExchangeRate', type: 'number' },
+                                { name: 'PaymentType', type: 'number' },
+                                { name: 'BPDate', type: 'date' },
+                                { name: 'CRName', type: 'string' },
+                                { name: 'AmountAf', type: 'number' },
+                                { name: 'Remarks', type: 'string' },
+                ],
+                cache: false,
+                url: URL,
+                root: 'Rows'
+            };
+
+            var dataadapter = new $.jqx.dataAdapter(source, {
+                loadError: function (xhr, status, error) {
+                    console.log(error);
+                }
+            }
+            );
+
+            $('#BookingPayment').jqxGrid(
+            {
+                source: dataadapter
+            });
+    }
+    function fillGridExpandable(varGridName,varURL) {
+        //alert()
+        //alert(BookedGuest)
+        //var URL = '/IMS/Booking/GetCalculatedMenuPrice?MID=' + MID + '&&BookedGuest=' + BookedGuest;
+        var URL = varURL;
+        var source =
+        {
+            datatype: "json",
+            datafields: [
+                            { name: 'CIID', type: 'number' },
+                            { name: 'BIID', type: 'number' },
+                            { name: 'CIName', type: 'string' },
+                            { name: 'CIUnit', type: 'string' },
+                            { name: 'SettingCount', type: 'number' },
+                            { name: 'CostPerUnit', type: 'number' },
+                            { name: 'Remarks', type: 'string' },
+            ],
+            cache: false,
+            url: URL,
+            root: 'Rows',
+            async: false
+        };
+
+        var dataadapter = new $.jqx.dataAdapter(source, {
+            loadError: function (xhr, status, error) {
+                console.log(error);
+            }
+        }
+        );
+
+        $('#' + varGridName).jqxGrid(
+        {
+            source: dataadapter
+        });
+    }
+    function fillGridNonExpandable(varGridName, varURL) {
+        //alert(MID)
+        //alert(BookedGuest)
+        //var URL = '/IMS/Booking/GetCalculatedMenuPriceNonEx?MID=' + MID + '&&BookedGuest=' + BookedGuest;
+        var URL = varURL;
+        var source =
+        {
+            datatype: "json",
+            datafields: [
+                            { name: 'CIID', type: 'number' },
+                            { name: 'BIID', type: 'number' },
+                            { name: 'OIID', type: 'number'},
+                            { name: 'CIName', type: 'string' },
+                            { name: 'CIUnit', type: 'string' },
+                            { name: 'SettingCount', type: 'number' },
+                            { name: 'OIPricePerUnit', type: 'number' },
+                            { name: 'OIQuantity', type: 'number' },
+                            { name: 'Remarks', type: 'string' },
+            ],
+            cache: false,
+            url: URL,
+            root: 'Rows',
+            async: false
+        };
+
+        var dataadapter = new $.jqx.dataAdapter(source, {
+            loadError: function (xhr, status, error) {
+                console.log(error);
+            }
+        }
+        );
+
+        $('#' + varGridName).jqxGrid(
+        {
+            source: dataadapter
+        });
+    }
+    function fillGrid(varGridName, varYear, varMonth) {
+        var URL = '/IMS/Booking/GetBookingData?Year=' + varYear + '&&Month=' + varMonth;
+        var source =
+        {
+            datatype: "json",
+            datafields: [
+                            { name: 'Date', type: 'date' },
+                            { name: 'PDay', type: 'number' },
+                            { name: 'DayName', type: 'string' },
+                            { name: 'T1International', type: 'string' },
+                            { name: 'T1Almas', type: 'string' },
+                            { name: 'T1Capital', type: 'string' },
+                            { name: 'T2International', type: 'string' },
+                            { name: 'T2Almas', type: 'string' },
+                            { name: 'T2Capital', type: 'string' },
+            ],
+            cache: false,
+            url: URL,
+            root: 'Rows'
+        };
+
+        var dataadapter = new $.jqx.dataAdapter(source, {
+            loadError: function (xhr, status, error) {
+                console.log(error);
+            }
+        }
+        );
+
+        $('#' + varGridName).jqxGrid(
+        {
+            source: dataadapter
+        });
+    }
+    function GetBookingHall(varID)
+    {
+        var BookingHall
+        if (varID == 'T1International') { BookingHall = 'تایم اول انترنیشنل' }
+        else if (varID == 'T1Almas') { BookingHall = 'تایم اول الماس' }
+        else if (varID == 'T1Capital') { BookingHall = 'تایم اول کاپیتال' }
+        else if (varID == 'T2International') { BookingHall = 'تایم دوم انترنیشنل' }
+        else if (varID == 'T2Almas') { BookingHall = 'تایم دوم الماس' }
+        else if (varID == 'T2Capital') { BookingHall = 'تایم دوم کاپیتال' }
+        return BookingHall;
+    }
+    function GetBHID(varID)
+    {
+        var BHID
+        if (varID == 'T1International') { BHID=1;}
+        else if (varID == 'T1Almas') { BHID=2;}
+        else if (varID == 'T1Capital') { BHID=3;}
+        else if (varID == 'T2International') { BHID=4;}
+        else if (varID == 'T2Almas') { BHID=5;}
+        else if (varID == 'T2Capital') { BHID = 6;}
+        return BHID;
+    }
+    function GetMenuPrice(varID)
+    {
+        $.ajax(
+            {
+                url: '/IMS/Booking/GetMenuPrice/' + varID,
+                type: 'post',
+                success: function (result) {
+                    $("#MenuPrice").val(result);
+                }
+            });
+    }
+    function GetBOOKINGID(BHID,Date)
+    {
+       // var BOOKINGID
+        var URL = '/IMS/Booking/GetBOOKINGID?BHID=' + BHID + "&&Date=" + Date
+        $.ajax(
+                    {
+                        url: URL,
+                        type: 'get',
+                        async: false,
+                        success: function (result) {
+                            $("#BOOKINGID").val(result);
+                            $("#ExapandableBOOKINGID").val(result);
+                            $("#NonExapandableBOOKINGID").val(result);
+                            //BOOKINGID = result;
+                            //if (result > 0){
+                            GetBookingDetail(result);
+                            //}
+
+                        }
+                    });
+        //return BOOKINGID;
+    }
+    function CheckForBooking(BHID, Date) {
+        var BOOKINGID
+        var URL = '/IMS/Booking/GetBOOKINGID?BHID=' + BHID + "&&Date=" + Date
+        $.ajax(
+                    {
+                        url: URL,
+                        type: 'get',
+                        async: false,
+                        success: function (result) {
+                            BOOKINGID = result;
+
+                        }
+                    });
+        return BOOKINGID;
+
+    }
+    function GetBookingDetail(bookingID)
+    {
+        
+        var URL = '/IMS/Booking/GetBOOKINGDetail/' + bookingID;
+        $.ajax(
+                    {
+                        url: URL,
+                        type: 'get',
+                        async: false,
+                        success: function (result) {
+                            $("#ExCustomerName").text(result[0].CustomerName);
+                            $("#ExMenuName").text(result[0].MenuName);
+                            $("#ExMenuPrice").text(result[0].MenuPrice);
+                            $("#ExBookedGuest").text(result[0].BookedGuest);
+                            $("#ExMID").val(result[0].MID);
+                            $("#ExBokedGuest").val(result[0].BookedGuest);
+                            $("#NonExCustomerName").text(result[0].CustomerName);
+                            $("#NonExMenuName").text(result[0].MenuName);
+                            $("#NonExMenuPrice").text(result[0].MenuPrice);
+                            $("#NonExBookedGuest").text(result[0].BookedGuest);
+                            $("#NonExMID").val(result[0].MID);
+                            $("#NonExBokedGuest").val(result[0].BookedGuest);
+                            $("#PmCustomerName").text(result[0].CustomerName);
+                            //$("#PrePerson").val(result[0].BookedGuest);
+                            //$("#ExapandableBOOKINGID").val(result);
+                            //alert(JSON.stringify(result));
+                        }
+                    });
+    }
+    function GetBookingDetails(bookingID) {
+        var URL = '/IMS/Booking/GetBOOKINGDetail/' + bookingID;
+        $.ajax(
+                    {
+                        url: URL,
+                        type: 'get',
+                        async: false,
+                        success: function (result) {
+                            $("#CustomerName").val(result[0].CustomerName);
+                            $("#Comb_MID").val(result[0].MenuName);
+                            $("#MenuPrice").val(result[0].MenuPrice);
+                            $("#BookedGuest").val(result[0].BookedGuest);
+                            $("#CustomerMobile").val(result[0].CustomerMobile);
+                            $("#CustomerEmail").val(result[0].CustomerEmail);
+                            $("#BookingNumber").val(result[0].BookingNumber);
+                            $("#BookingRemarks").val(result[0].BookingRemarks);
+                            $("#MID").val(result[0].MID);
+                            $("#Comb_PrePaidAmount").val(result[0].PrePaidAmount)
+                            $("#PrePaidAmount").val(result[0].PrePaidAmount)
+                            $("#PrePaidExchangeRate").val(result[0].PrePaidExchangeRate)
+                            $("#Comb_PrePaidCurrencyID").val(result[0].CRName)
+                            $("#PrePaidCurrencyID").val(result[0].PrePaidCurrencyID)
+                            $("#CLCustomerName").text(result[0].CustomerName);
+                            $("#CLBookedGuest").val(result[0].BookedGuest);
+                            $("#CanCustomerName").text(result[0].CustomerName);
+                        }
+                    });
+    }
+    function CheckExpandableForInsert(varBookingID)
+    {
+        var URL = '/IMS/Booking/CheckExpandableForInsert/' + varBookingID;
+        var res;
+        $.ajax(
+                    {
+                        url: URL,
+                        type: 'get',
+                        async: false,
+                        success: function (result) {
+                            res = result;
+                        }
+                    });
+        return res;
+    }
+    function CheckNonExpandableForInsert(varBookingID) {
+        var URL = '/IMS/Booking/CheckNonExpandableForInsert/' + varBookingID;
+        var res;
+        $.ajax(
+                    {
+                        url: URL,
+                        type: 'get',
+                        async: false,
+                        success: function (result) {
+                            res = result;
+                        }
+                    });
+        return res;
+    }
+    function GetBookingNumber()
+    {
+        var URL = '/IMS/Booking/GetBookingCode/';
+        var bcode;
+        $.ajax(
+                    {
+                        url: URL,
+                        type: 'get',
+                        async: false,
+                        success: function (result) {
+                            bcode = result;
+                        }
+                    });
+        return bcode;
+    }
+
+</script>
+
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        <div>
+            <span>بوکینگ</span>
+            @*<span class="pull-left fonclass" style="font-size:29px; margin-left:20px;margin-right:20px;"><<</span>*@
+            <span class="pull-left"><div id="Comb_MonthID"></div></span>
+            @*<span class="pull-left fonclass" style="font-size:29px; margin-left:20px;margin-right:20px;">>></span>*@
+        </div>
+        @*<input type="button" class="btn-success pull-left fonclass" id="AddNew" value="حواله جدید" />*@
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="Booking"></div>
+        </div>
+    </div>
+</div>
+<div id="CMenu">
+    <ul dir="rtl">
+        @*<li id="Edit">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">بوکنگ جدید</span>
+        </li>
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">اصلاح بوکنگ</span>
+        </li>*@
+        <li id="Expandable">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">اضافه حواله مواد مصرفی</span>
+        </li>
+        <li id="Expandable">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">اصلاح حواله مواد مصرفی</span>
+        </li>
+        <li id="Expandable">
+            <img src="~/images/print.png" class="pull-right" />
+            <span class="fonclass">پرنت راپور مصرفی</span>
+        </li>
+        <li>
+            <img src="~/images/print.png" class="pull-right" />
+            <span class="fonclass">پرنت راپور فروشنده</span>
+        </li>
+        <li id="Expandable">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">اضافه مواد گدام</span>
+        </li>
+        <li id="Expandable">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">اصلاح مواد گدام</span>
+        </li>
+        <li id="Expandable">
+            <img src="~/images/print.png" class="pull-right" />
+            <span class="fonclass">پرنت مواد گدام</span>
+        </li>
+        @*<li id="Expandable">
+            <img src="~/images/attachment.png" class="pull-right" />
+            <span class="fonclass">پرداخت ها</span>
+        </li>
+        <li id="Expandable">
+            <img src="~/images/attachment.png" class="pull-right" />
+            <span class="fonclass">محسوبی محفل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">لغو بوکنگ</span>
+        </li>*@
+    </ul>
+</div>
+<div id="myModalBooking" class="modal fade" role="dialog">
+    <div style="width:80%;" class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">بوکنگ جدید</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmBooking">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>اسم مشتری:</b></td>
+                            <td><input type="text" name="CustomerName" id="CustomerName" class="fonclass" /></td>
+                            <td><b>شماره تماس:</b></td>
+                            <td><input type="text" name="CustomerMobile" id="CustomerMobile" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b> تاریخ:</b></td>
+                            <td>
+                                <input type="text" name="BDate" id="BDate" class="fonclass readonl" />
+                                <input type="hidden" name="Date" id="Date" class="fonclass" />
+                            </td>
+                            <td><b>بوکنگ حال:</b></td>
+                            <td>
+                                <input type="text" name="BHName" id="BHName" class="fonclass readonl" />
+                                <input type="hidden" name="BHID" id="BHID" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><b>ایمیل آدرس:</b></td>
+                            <td><input type="text" name="CustomerEmail" id="CustomerEmail" class="fonclass" /></td>
+                            <td><b>تعداد مهمان تخمینی:</b></td>
+                            <td><input type="text" name="BookedGuest" id="BookedGuest" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>مینو غذا:</b></td>
+                            <td><div id="Comb_MID"></div></td>
+                            <td><b>قیمت مینو غذا:</b></td>
+                            <td><input type="text" name="MenuPrice" id="MenuPrice" /></td>
+                        </tr>
+
+
+                        <tr>
+                            <td><b>نمبر بوکنگ:</b></td>
+                            <td><input type="text" name="BookingNumber" id="BookingNumber" class="fonclass readonl" readonly="readonly" /></td>
+                            <td><b>ملاحظات:</b></td>
+                            <td><input type="text" name="BookingRemarks" id="BookingRemarks" class="fonclass" /></td>
+                        </tr>
+                    </table>
+                    <table class="table table-bordered" dir="rtl">
+                        <tr>
+                            <td><b>مقدار پیش پرداخت</b></td>
+                            <td><input type="text" name="Comb_PrePaidAmount" id="Comb_PrePaidAmount" /></td>
+                            <td><b>واحد پولی:</b></td>
+                            <td><div id="Comb_PrePaidCurrencyID"></div></td>
+                            <td><b>قیمت تبدیل:</b></td>
+                            <td>
+                                <input type="text" name="PrePaidExchangeRate" id="PrePaidExchangeRate" />
+                            </td>
+                        </tr>
+                    </table>
+                    <table class="table" dir="rtl">
+                        <tr>
+                            <td colspan="2" align="center">
+                                <input type="hidden" name="BOOKINGID" id="BOOKINGID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="myModalExpandable" class="modal fade" role="dialog">
+    <div style="width:80%;" class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close closeEx" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">حواله مواد مصرفی</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmBooking">
+                    <table class="table table-striped" dir="rtl">
+
+                        <tr>
+                            <td><b> تاریخ:</b></td>
+                            <td><div id="ExDate"></div></td>
+                            <td><b>بوکنگ حال:</b></td>
+                            <td><div id="ExBookingHall"></div></td>
+                            <td><b>اسم مشتری:</b></td>
+                            <td><div id="ExCustomerName"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>مینو غذا:</b></td>
+                            <td><div id="ExMenuName"></div></td>
+                            <td><b>قیمت مینو غذا:</b></td>
+                            <td><div id="ExMenuPrice"></div></td>
+                            <td><b>تعداد مهمان تخمینی:</b></td>
+                            <td><div id="ExBookedGuest"></div></td>
+                        </tr>
+                        @*<tr>
+                                <td>تعداد آمادگی</td>
+                                <td><input type="text" name="PrePerson" id="PrePerson" /></td>
+                                <td colspan="4"><button id="CalculateMenuPrice" type="button" class="fonclass btn-primary">محاسبه مواد مصرفی</button></td>
+                            </tr>*@
+                        <tr>
+                            <td colspan="6"><div id="ExpandableSettingItems"></div></td>
+                        </tr>
+                    </table>
+                    <table class="table" dir="rtl">
+                        <tr>
+                            <td colspan="2" align="center">
+                                <input type="hidden" name="BOOKINGID" id="ExapandableBOOKINGID" />
+                                <input type="hidden" name="MID" id="ExMID" />
+                                <input type="hidden" id="ExBokedGuest" name="BookedGuest" />
+                                <button id="SaveExpandable" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="CancelExpandable" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="myModalNonExpandable" class="modal fade" role="dialog">
+    <div style="width:80%;" class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close closeNonEx" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">حواله مواد گدام</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmBooking">
+                    <table class="table table-striped" dir="rtl">
+
+                        <tr>
+                            <td><b> تاریخ:</b></td>
+                            <td><div id="NonExDate"></div></td>
+                            <td><b>بوکنگ حال:</b></td>
+                            <td><div id="NonExBookingHall"></div></td>
+                            <td><b>اسم مشتری:</b></td>
+                            <td><div id="NonExCustomerName"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>مینو غذا:</b></td>
+                            <td><div id="NonExMenuName"></div></td>
+                            <td><b>قیمت مینو غذا:</b></td>
+                            <td><div id="NonExMenuPrice"></div></td>
+                            <td><b>تعداد مهمان تخمینی:</b></td>
+                            <td><div id="NonExBookedGuest"></div></td>
+                        </tr>
+                        <tr>
+                                <td>تعداد آمادگی</td>
+                                <td><input type="text" name="PrePerson" id="PrePerson" /></td>
+                                <td colspan="4"><button id="CalculateMenuPrice" type="button" class="fonclass btn-primary">محاسبه مواد مصرفی</button></td>
+                            </tr>
+                        <tr>
+                            <td colspan="6"><div id="NonExpandableSettingItems"></div></td>
+                        </tr>
+                    </table>
+                    <table class="table" dir="rtl">
+                        <tr>
+                            <td colspan="2" align="center">
+                                <input type="hidden" name="BOOKINGID" id="NonExapandableBOOKINGID" />
+                                <input type="hidden" name="MID" id="NonExMID" />
+                                <input type="hidden" id="NonExBokedGuest" name="BookedGuest" />
+                                <input type="hidden" id="IsEdit" value="0" />
+                                <button id="SaveNonExpandable" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="CancelNonExpandable" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="myModalPayment" class="modal fade" role="dialog">
+    <div style="width:80%;" class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close closePm" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">پرداخت های بوکنگ</h4>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped" dir="rtl">
+
+                    <tr>
+                        <td><b> تاریخ:</b></td>
+                        <td><div id="PmDate"></div></td>
+                        <td><b>بوکنگ حال:</b></td>
+                        <td><div id="PmBookingHall"></div></td>
+                        <td><b>اسم مشتری:</b></td>
+                        <td><div id="PmCustomerName"></div></td>
+                    </tr>
+                </table>
+                <form id="frmBookingPayment">
+
+                    <table class="table" dir="rtl">
+                        <tr>
+                            <td><b>واحد پولی</b></td>
+                            <td><b>مقدار</b></td>
+                            <td><b>قیمت تبدیل به افغانی</b></td>
+                            <td><b>ملاحظات</b></td>
+                            <td>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td><div id="Comb_CRID"></div></td>
+                            <td><input type="text" id="BP_Amount" name="BP_Amount" /></td>
+                            <td><input type="text" id="ExchangeRate" name="ExchangeRate" /></td>
+                            <td><input type="text" id="RemarksPayment" name="Remarks" /></td>
+                            <td>
+                                <input type="hidden" name="BPID" id="BPID" />
+                                <input type="hidden" name="BOOKINGID" id="BPBOOKINGID" />
+                                <button id="SavePayment" type="button" class="fonclass btn-primary">ثبت</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+                <table class="table">
+                    <tr>
+                        <td><div id="BookingPayment"></div></td>
+                    </tr>
+                </table>
+                @*<table class="table" dir="rtl">
+                        <tr>
+                            <td colspan="2" align="center">
+                                <input type="hidden" name="BOOKINGID" id="PaymentBOOKINGID" />
+                                <button id="SaveExpandable" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="CancelExpandable" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>*@
+            </div>
+        </div>
+    </div>
+</div>
+<div id="CMenuPayment">
+    <ul dir="rtl">
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">اصلاح</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+    </ul>
+</div>
+<div id="myModalClearance" class="modal fade" role="dialog">
+    <div style="width:50%;" class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close closeCL" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">محسوبی محفل</h4>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped" dir="rtl">
+
+                    <tr>
+                        <td><b> تاریخ:</b></td>
+                        <td><div id="CLDate"></div></td>
+                        <td><b>بوکنگ حال:</b></td>
+                        <td><div id="CLBookingHall"></div></td>
+                        <td><b>اسم مشتری:</b></td>
+                        <td><div id="CLCustomerName"></div></td>
+                    </tr>
+                </table>
+                <form id="frmBookingCL">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>تعداد بوک شده</b></td>
+                            <td><input type="text" readonly="readonly" class="readonl" name="BookedGuest" id="CLBookedGuest" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>تعداد مهمان اضافی</b></td>
+                            <td><input type="text" name="ActualGuest" id="ActualGuest" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>سرویس چارج</b></td>
+                            <td><input type="text" name="ServiceCharge" id="ServiceCharge" /></td>
+                        </tr>
+                    </table>
+                    <table class="table" dir="rtl">
+                        <tr>
+                            <td colspan="2" align="center">
+                                <input type="hidden" name="BOOKINGID" id="CLBOOKINGID" />
+                                <button id="SaveClBooking" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="CancelClBooking" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="myModalCancel" class="modal fade" role="dialog">
+    <div style="width:75%;" class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close closeCan" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">لغو بوکنگ</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmBookingCan">
+                    <table class="table table-striped" dir="rtl">
+
+                        <tr>
+                            <td><b> تاریخ:</b></td>
+                            <td>
+                                <div id="CanDate"></div>
+                                <input type="hidden" name="BookingDate" id="BookingDate" class="readonl" readonly="readonly" />
+                            </td>
+                            <td><b>بوکنگ حال:</b></td>
+                            <td><div id="CanBookingHall"></div></td>
+                            <td><b>اسم مشتری:</b></td>
+                            <td><div id="CanCustomerName"></div></td>
+                        </tr>
+                    </table>
+
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>دلیل لغو </b></td>
+                            <td><input type="text" class="fonclass" name="CancelReason" id="CancelReason" /></td>
+                            <td><b>ملاحظات</b></td>
+                            <td><input type="text" name="Remarks" id="CancelRemarks" /></td>
+                        </tr>
+
+                    </table>
+                    <table class="table table-bordered" dir="rtl">
+                        <tr>
+                            <td><b>مبلغ کنسل</b></td>
+                            <td><input type="text" name="Comb_CancelAmount" id="Comb_CancelAmount" /></td>
+                            <td><b>واحد پولی:</b></td>
+                            <td><div id="Comb_CancelAmountCID"></div></td>
+                            <td><b>قیمت تبدیل:</b></td>
+                            <td>
+                                <input type="text" name="CancelAmountExchange" id="CancelAmountExchange" />
+                            </td>
+                        </tr>
+                    </table>
+                    <table class="table" dir="rtl">
+                        <tr>
+                            <td colspan="2" align="center">
+                                <input type="hidden" name="BOOKINGID" id="CANBOOKINGID" />
+                                <button id="SaveCANBooking" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="CancelCANBooking" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

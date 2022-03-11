@@ -1,0 +1,322 @@
+﻿@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGrid('WorkHour');
+        setInputsDr(["LateIn", "EarlyOut", "Remarks", "D_StartDate", "D_EndDate"], 300, 30);
+        setCombo('#Comb_ShiftID', '@Url.Action("GetShift")', 'ShiftID', 'ShiftName', 30, 300, 1);
+        makeDates(["D_StartDate", "D_EndDate"], 'frmWorkHour', 'rtl')
+        $('#WH_TIMEIN').jqxDateTimeInput({ width: '150px', height: '25px', formatString: 'T', showTimeButton: true, showCalendarButton: false });
+        $('#WH_TIMEIN').on('change', function (event) {
+            var TimeIn = moment($("#WH_TIMEIN").jqxDateTimeInput('getDate')).format('HH:mm:ss');
+            $('#TIMEIN').val(TimeIn);
+        });
+        $('#WH_TIMOUT').jqxDateTimeInput({ width: '150px', height: '25px', formatString: 'T', showTimeButton: true, showCalendarButton: false });
+        $('#WH_TIMOUT').on('change', function (event) {
+            var TIMOUT = moment($("#WH_TIMOUT").jqxDateTimeInput('getDate')).format('HH:mm:ss');
+            $('#TIMOUT').val(TIMOUT);
+        });
+        makeCombHidden(["Comb_ShiftID"], 'frmWorkHour');
+        setSubmitBtn("Save", 90, 30);
+        setCancelBtn("Cancel", 90, 30);
+        HideModal('close', 'Cancel', 'frmWorkHour', 'myModal');
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        makeContextMenu('CMenu', 'WorkHour', 150, 90);
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#WorkHour").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                var dataRecord = $("#WorkHour").jqxGrid('getrowdata', rowindex);
+                EditInputs(["WorkHourID", "ShiftID", "LateIn", "EarlyOut", "Remarks"], dataRecord);
+                if (dataRecord.ShiftID == null) {
+                    $("#ShiftID").val('');
+                    $("#Comb_ShiftID").jqxComboBox('clearSelection');
+                } else {
+                    $("#ShiftID").val(dataRecord.ShiftID);
+                    $("#Comb_ShiftID").val(dataRecord.ShiftName);
+                }
+                $("#TIMEIN").val(moment(dataRecord.TIMEIN).format('HH:mm:ss'));
+                $("#WH_TIMEIN").val(dataRecord.TIMEIN);
+                $("#TIMOUT").val(moment(dataRecord.TIMOUT).format('HH:mm:ss'));
+                $("#WH_TIMOUT").val(dataRecord.TIMOUT);
+                $("#StartDate").val(moment(dataRecord.StartDate).format('YYYY-MM-DD'));
+                $("#EndDate").val(moment(dataRecord.EndDate).format('YYYY-MM-DD'));
+                $("#D_StartDate").val(dataRecord.StartDateDr);
+                $("#D_EndDate").val(dataRecord.EndDateDr);
+
+                //$("#D_StartDate").val(dataRecord.StartDateDr);
+                //$("#D_EndDate").val(dataRecord.EndDateDr);
+                //$("#WH_TIMEIN").val(dataRecord.TIMEIN);
+                //$("#WH_TIMOUT").val(dataRecord.TIMOUT);
+
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if(varMenuItem =="جدید")
+            {
+                AddBClick();
+            }
+        });
+        $("#Save").click(function () {
+            var validationResult = function (isValid) {
+                if (isValid) {
+                    var varURL = ($("#WorkHourID").val() == '' || $("#WorkHourID").val() == null) ? '@Url.Action("Create")' : '@Url.Action("Edit")';
+                    if ($("#WorkHourID").val() == '') {
+                        $("#WorkHourID").remove();
+                    }
+                    $.ajax(
+                    {
+                        url: varURL,
+                        type: 'post',
+                        data: $('#frmWorkHour').serialize(),
+                        success: function (result) {
+                            if (result == "true") {
+                                $('#myModal').modal('hide');
+                                toastr["success"]('معلومات موفقانه ثبت گردید');
+                                $('#WorkHour').jqxGrid('updatebounddata', 'data');
+                                $('#frmWorkHour').append("<input type='hidden' id='WorkHourID' name='WorkHourID' />");
+                            } else if (result == "false") {
+                                toastr["error"]("An error occured please check the form!");
+                            }
+                            else if (result == "Updated") {
+                                $('#myModal').modal('hide');
+
+                                toastr["success"]('معلومات موفقانه تعدیل گردید');
+                                $('#WorkHour').jqxGrid('updatebounddata', 'data');
+                            }
+                            else {
+                                toastr["error"](result);
+                            }
+                        }
+                    });
+                }
+            }
+            $('#frmWorkHour').jqxValidator('validate', validationResult)
+        });
+
+        $('#frmWorkHour').jqxValidator({
+            hintType: 'label',
+            animationDuration: 0,
+            rtl:true,
+            rules: [
+                {
+                    input: '#Comb_ShiftID', message: '  ضروری ! ', action: 'select blur', rule: function (input)
+                    { var val = $("#Comb_ShiftID").jqxComboBox('val'); if (val == "") { return false; } return true; }
+                },
+            { input: '#D_StartDate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#D_EndDate', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#LateIn', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' },
+            { input: '#EarlyOut', message: '  ضروری!  ', action: 'keyup, blur', rule: 'required' }
+            ], theme: 'darkblue'
+        });
+
+        setAddBtn('AddNew', 'ltr', 150, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+
+
+
+
+
+
+    });
+    function AddBClick()
+    {
+        clearInputs(["WorkHourID", "ShiftID", "StartDate", "EndDate", "TIMEIN", "TIMOUT", "LateIn", "LateIn", "EarlyOut", "Remarks"]);
+        $("#Comb_ShiftID").jqxComboBox('clearSelection');
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+                        { text: 'تاریخ آغاز', dataField: 'StartDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تاریخ ختم', dataField: 'EndDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تایم ورود', dataField: 'TIMEIN', width: '15%',cellsformat: 'h:mm tt', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'تایم خروج', dataField: 'TIMOUT', width: '15%', cellsformat: 'h:mm tt', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'دقایق ناوقت آمدن', dataField: 'LateIn', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'دقایق وقت رفتن', dataField: 'EarlyOut', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'ملاحظات', dataField: 'Remarks', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        var datafields = [
+                        {name:'WorkHourID'},
+                        {name:'ShiftID'},
+                        { name: 'StartDate', type: 'date', format: "dd-MMM-yyyy" },
+                        { name: 'EndDate', type: 'date', format: "dd-MMM-yyyy" },
+                        {name:'TIMEIN',type: 'date', format: 'h:mm tt'},
+                        { name: 'TIMOUT', type: 'date', format: 'h:mm tt' },
+                        {name:'LateIn'},
+                        {name:'EarlyOut'},
+                        {name:'Remarks'},
+                        {name:'ShiftID'},
+                        {name:'ShiftName'},
+                        {name: 'Remarks' },
+                        {name: 'StartDateDr' },
+                        {name: 'EndDateDr' },
+
+        ];
+
+        fillGrid(datafields, varGridName, '/WorkHour/GetWorkHour');
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#WorkHour").jqxGrid('getselectedrowindex');
+        var rowid = $("#WorkHour").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#WorkHour").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")' + dataRecord.WorkHourID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#WorkHour').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+</script>
+
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        ساعات کاری
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="ساعت کاری جدید" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="WorkHour"></div>
+        </div>
+    </div>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">ساعت کاری جدید</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmWorkHour">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>شفت کاری:</b></td>
+                            <td><div id="Comb_ShiftID" class="fonclass"></div></td>
+                        </tr>
+                        <tr>
+                            <td><b>تاریخ آغاز:</b></td>
+                            <td><input type="text" name="D_StartDate" id="D_StartDate" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>تاریخ ختم:</b></td>
+                            <td><input type="text" name="D_EndDate" id="D_EndDate" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>تایم ورود:</b></td>
+                            <td>
+                                <div id="WH_TIMEIN"></div>
+                                <input type="text" name="TIMEIN" id="TIMEIN" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><b>تایم خروج:</b></td>
+                            <td>
+                                <div id="WH_TIMOUT"></div>
+                                <input type="text" name="TIMOUT" id="TIMOUT" />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><b>دقایق ناوقت آمدن:</b></td>
+                            <td><input type="text" name="LateIn" id="LateIn" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>دقایق وقت رفتن:</b></td>
+                            <td><input type="text" name="EarlyOut" id="EarlyOut" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td><b>ملاحظات:</b></td>
+                            <td><input type="text" name="Remarks" id="Remarks" class="fonclass" /></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" align="center">
+                                <br />
+                                <input type="hidden" name="WorkHourID" id="WorkHourID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="popupWindow2">
+    <div class="fonclass">حذف معلومات</div>
+    <div style="overflow: hidden;">
+        <table>
+            <tr>
+                <td colspan="2">
+                    <b class="fonclass">آیا با حذف کردن موافق هستید؟</b>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"></td>
+                <td style="padding-top: 10px;" align="center">
+                    <input style="margin-right: 5px;" type="button" class="fonclass" id="ok" value="بلی" onclick="deleteRecord();" />
+                    <input id="Cancel2" type="button" class="fonclass" value="نخیر" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Insert">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">جدید</span>
+        </li>
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+    </ul>
+</div>

@@ -1,0 +1,362 @@
+﻿@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script src="~/Scripts/calender/jquery.calendars.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.plus.js"></script>
+<link href="~/Scripts/calender/jquery.calendars.picker.css" rel="stylesheet" />
+<script src="~/Scripts/calender/jquery.plugin.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.picker.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.persian.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var calendar = $.calendars.instance('persian');
+        var varDateFields = ["D_ODate"];
+        makeDates(varDateFields, "frmGulsazeExpenses", 'rtl');
+        setGrid('GulsazeExpenses');
+        setGridNonExpandable('NonExItems');
+        setInputsDr(["D_ODate", "OtherExpenseName"], 300, 30);
+        //setCombo('#Comb_GEMID', '@Url.Action("GetGEM")', 'GEMID', 'GEMName', 30, 300, 1);
+        //setCombo('#Comb_CCID', '@Url.Action("GetCategoryClass")', 'CCID', 'CCName', 30, 300, 1);
+        //makeCombHidden(["Comb_GEMID"], 'frmGulsazeExpenses');
+        setSubmitBtn("Save", 90, 30);
+        setCancelBtn("Cancel", 90, 30);
+        HideModal('close', 'Cancel', 'frmGulsazeExpenses', 'myModal');
+        makeDeletePopup('popupWindow2', 'Cancel2', 'ok');
+        makeContextMenu('CMenu', 'GulsazeExpenses', 150, 120);
+        $("#CMenu").on('itemclick', function (event) {
+            var args = event.args;
+            var varMenuItem = $.trim($(args).text());
+            var rowindex = $("#GulsazeExpenses").jqxGrid('getselectedrowindex');
+            if (varMenuItem == 'تعدیل') {
+                var dataRecord = $("#GulsazeExpenses").jqxGrid('getrowdata', rowindex);
+                EditInputs(["GEID", "GEMID", "GEPricePerUnit", "GEQuantity", "GEDate", "GERemarks"], dataRecord);
+
+                $("#GEMID").val(dataRecord.GEMID);
+                $("#Comb_GEMID").val(dataRecord.GEMName);
+                $("#D_GEDate").val(dataRecord.GEDateDr);
+
+                $('#myModal').modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+            } else if (varMenuItem == "حذف") {
+                $("#popupWindow2").jqxWindow('show');
+            } else if(varMenuItem =="جدید")
+            {
+                AddBClick();
+            } else if (varMenuItem == "پرنت راپور") {
+                var url = '/Areas/IMS/Reports/OtherExpensesReport.aspx';
+                window.open(url, "_blank")
+            }
+        });
+        var list = [];
+        $("#Save").click(function () {
+           // alert($("#ODate").val()); 
+            list = [];
+            var varURL = '/IMS/Booking/SaveNonExpandableOthers';
+            var rows = $('#NonExItems').jqxGrid('selectedrowindexes');
+            for (var i = 0; i < rows.length; i++) {
+                var dataRecord = $("#NonExItems").jqxGrid('getrowdata', rows[i]);
+                if (dataRecord.SettingCount == null || dataRecord.SettingCount == 0) {
+                    toastr["error"]("مقدارجنس را وارد نماید");
+                    return;
+                } if (dataRecord.SettingCount > dataRecord.OIQuantity) {
+                    toastr["error"]("مقدار جنس در گدام موجود نمیباشد");
+                    return;
+                }
+                var OrderItems = {
+                    OIID: dataRecord.OIID,
+                    CIID: dataRecord.CIID,
+                    OIQuantity: dataRecord.SettingCount,
+                    OIPricePerUnit: dataRecord.OIPricePerUnit,
+                }
+                list.push(OrderItems);
+            }
+            var data = {
+                BOOKINGID: '0',
+                //ORemarks: 'Other Expenses',
+                ODate: $("#ODate").val(),
+                ORemarks: $("#OtherExpenseName").val(),
+               // OCode: $("#NonExapandableBOOKINGID").val(),
+                OrderItems: list
+            }
+            console.log(JSON.stringify(data));
+           // alert(JSON.stringify(data));
+            //return;
+            $.ajax(
+                   {
+                       url: varURL,
+                       contentType: 'application/json;',
+                       dataType: 'json',
+                       type: 'post',
+                       data: JSON.stringify(data),
+                       success: function (result) {
+                           if (result == "saved") {
+                               toastr["success"]("معلومات موفقانه درج سیستم گردید");
+                               $("#myModal").modal('hide');
+                               $('#NonExItems').jqxGrid('clearselection');
+                               //fillGridExpandable('NonExItems', 0, 0);
+                               //$('#Orders').jqxGrid('updatebounddata', 'data');
+                           } else if (result == "updated") {
+                               toastr["success"]("معلومات موفقانه اصلاح گردید");
+                               $("#myModal").modal('hide');
+                               $('#Orders').jqxGrid('updatebounddata', 'data');
+                           }
+                           else {
+                               toastr["error"]("An error occured please check the form!<br />" + result);
+                           }
+                       }
+                   });
+        });
+        
+
+        setAddBtn('AddNew', 'ltr', 100, 30);
+        $('#AddNew').click(function () {
+            AddBClick();
+        })
+
+
+
+
+
+
+
+    });
+    function AddBClick()
+    {
+        //clearInputs(["GEID", "GEMID", "GEPricePerUnit", "GEQuantity", "GERemarks", "GEDate", "D_GEDate", "Comb_GEMID"]);
+        // $("#Comb_GEMID").jqxComboBox('clearSelection');
+        fillGridNonExpandable();
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
+    function setGrid(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: false,
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl:true,
+                columns: [
+                        { text: 'تاریخ', dataField: 'BIDateDr', width: '10%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'به امضاء', dataField: 'OtherExpenseName', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'اسم جنس', dataField: 'CIName', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مقدار', dataField: 'BIQuantity', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'قیمت فی واحد', dataField: 'OIPricePerUnit', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        { text: 'مجموعه', dataField: 'Total', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+                        //{ text: 'ملاحظات', dataField: 'GERemarks', width: '20%', cellsalign: 'right', align: 'right', cellclassname: cellclassname },
+
+
+                ]
+
+            });
+        var datafields = [
+                  { name: 'BIID' },
+                  { name: 'BOOKINGID' },
+                  { name: 'OIID' },
+                  { name: 'BIQuantity' },
+                  { name: 'IsExpandable' },
+                  { name: 'BIDate' },
+
+                  { name: 'CIName' },
+                  { name: 'CIUnit' },
+                  { name: 'OIPricePerUnit' },
+                  { name: 'BIDateDr' },
+                  { name: 'Total' },
+                  { name: 'OtherExpenseName' },
+
+
+
+        ];
+
+        fillGrid(datafields, varGridName, '/Booking/GetOtherExpenses');
+    }
+    function deleteRecord() {
+
+        var rowindex = $("#GulsazeExpenses").jqxGrid('getselectedrowindex');
+        var rowid = $("#GulsazeExpenses").jqxGrid('getrowid', rowindex);
+        var dataRecord = $("#GulsazeExpenses").jqxGrid('getrowdata', rowindex);
+        $.ajax(
+            {
+                url: '@Url.Action("Delete/")'+dataRecord.CIID,
+                type: 'post',
+                success: function (result) {
+                    $("#popupWindow2").jqxWindow('close');
+                    toastr["error"]("معلومات موفقانه حذف گردید");
+                    $('#GulsazeExpenses').jqxGrid('updatebounddata', 'data');
+                }
+            });
+
+    }
+    function setGridNonExpandable(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: true,
+                editmode: 'click',
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                selectionmode: 'checkbox',
+                columns: [
+                        { text: 'اسم جنس', dataField: 'CIName', width: '40%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'واحد جنس', dataField: 'CIUnit', width: '27%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'مقدار موجود', dataField: 'OIQuantity', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        //{ text: 'قیمت فی واحد', dataField: 'OIPricePerUnit', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'مقدار ضرورت', dataField: 'SettingCount', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: true },
+                        //{ text: 'ملاحظات', dataField: 'CIRemarks', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+
+
+                ]
+
+            });
+    }
+    function fillGridNonExpandable() {
+        //alert(MID)
+        //alert(BookedGuest)
+        var URL = '/IMS/Booking/GetStockForOtherExpenses';
+        var source =
+        {
+            datatype: "json",
+            datafields: [
+                            { name: 'CIID', type: 'number' },
+                            { name: 'OIID', type: 'number' },
+                            { name: 'CIName', type: 'string' },
+                            { name: 'CIUnit', type: 'string' },
+                            { name: 'SettingCount', type: 'number' },
+                            { name: 'OIPricePerUnit', type: 'number' },
+                            { name: 'OIQuantity', type: 'number' },
+                            { name: 'Remarks', type: 'string' },
+            ],
+            cache: false,
+            url: URL,
+            root: 'Rows'
+        };
+
+        var dataadapter = new $.jqx.dataAdapter(source, {
+            loadError: function (xhr, status, error) {
+                console.log(error);
+            }
+        }
+        );
+
+        $('#NonExItems').jqxGrid(
+        {
+            source: dataadapter
+        });
+    }
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        مصارف متفرقه
+        <input type="button" class="btn-success pull-left fonclass" id="AddNew" value="مصرف جدید" />
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="GulsazeExpenses"></div>
+        </div>
+    </div>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog" style="width:80%;">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #337AB7;">
+                <button type="button" class="close" style="color:white;">&times;</button>
+                <h4 class="modal-title" style="color:white">مصرف جدید</h4>
+            </div>
+            <div class="modal-body">
+                <form id="frmGulsazeExpenses">
+                    <table class="table table-striped" dir="rtl">
+                        <tr>
+                            <td><b>تاریخ:</b></td>
+                            <td><input type="text" id="D_ODate" class="is-dateickeer" /></td>
+                            <td><b>به امضا</b></td>
+                            <td><input type="text" id="OtherExpenseName" name="OtherExpenseName" /></td>
+
+                        </tr>
+                        <tr>
+                            <td colspan="4"><div id="NonExItems"></div></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" align="center">
+                                <br />
+                                <input type="hidden" name="GEID" id="GEID" />
+                                <button id="Save" type="button" class="fonclass btn-primary">ثبت</button>
+                                <button id="Cancel" type="button" class="fonclass btn-danger">لغو</button>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="popupWindow2">
+    <div class="fonclass">حذف معلومات</div>
+    <div style="overflow: hidden;">
+        <table>
+            <tr>
+                <td colspan="2">
+                    <b class="fonclass">آیا با حذف کردن موافق هستید؟</b>
+                </td>
+            </tr>
+            <tr>
+                <td align="right"></td>
+                <td style="padding-top: 10px;" align="center">
+                    <input style="margin-right: 5px;" type="button" class="fonclass" id="ok" value="بلی" onclick="deleteRecord();" />
+                    <input id="Cancel2" type="button" class="fonclass" value="نخیر" />
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+
+<div id="CMenu">
+    <ul dir="rtl">
+        <li id="Insert">
+            <img src="~/images/add.png" class="pull-right" />
+            <span class="fonclass">جدید</span>
+        </li>
+        <li id="Edit">
+            <img src="~/images/pencil.png" class="pull-right" />
+            <span class="fonclass">تعدیل</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/cancel.png" class="pull-right" />
+            <span class="fonclass">حذف</span>
+        </li>
+        <li id="Delete">
+            <img src="~/images/print.png" class="pull-right" />
+            <span class="fonclass">پرنت راپور</span>
+        </li>
+    </ul>
+</div>

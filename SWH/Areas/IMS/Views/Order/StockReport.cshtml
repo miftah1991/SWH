@@ -1,0 +1,101 @@
+﻿
+@{
+    ViewBag.Title = "StockReport";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    
+}
+<script src="~/Scripts/calender/jquery.calendars.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.plus.js"></script>
+<link href="~/Scripts/calender/jquery.calendars.picker.css" rel="stylesheet" />
+<script src="~/Scripts/calender/jquery.plugin.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.picker.js"></script>
+<script src="~/Scripts/calender/jquery.calendars.persian.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var calendar = $.calendars.instance('persian');
+        var varDateFields = ["D_FromDate", "D_ToDate"];
+        makeDates(varDateFields, "stockInRPT", 'rtl');
+        makeDates(["D_FromDateOut", "D_ToDateOut"], "stockOutRPT", 'rtl');
+
+        setInputsDr(["D_FromDate", "D_ToDate","D_FromDateOut", "D_ToDateOut"], 200, 30);
+        setCombo('#Comb_CIID', '@Url.Action("GetCategoryItem/")', 'CIID', 'CIName', 30, 200, 0);
+        setCombo('#Comb_CIIDOut', '@Url.Action("GetCategoryItem/")', 'CIID', 'CIName', 30, 200, 0);
+        setSubmitBtn('genReport', 300, 30);
+        setSubmitBtn('genReportOut', 300, 30);
+        $("#genReport").click(function () {
+            var FromDate = $("#FromDate").val();
+            var ToDate = $("#ToDate").val();
+            var CIID = $("#Comb_CIID").val();
+            if (CIID == '' || CIID == null)
+            {
+                CIID = 0;
+            }
+            var url = '/Areas/IMS/Reports/InventoryReport.aspx?FromDate='+FromDate+'&ToDate='+ToDate+'&CIID='+CIID;
+            window.open(url, "_blank")
+
+        });
+        $("#genReportOut").click(function () {
+            var FromDate = $("#FromDateOut").val();
+            var ToDate = $("#ToDateOut").val();
+            var CIID = $("#Comb_CIIDOut").val();
+            if (CIID == '' || CIID == null) {
+                CIID = 0;
+            }
+            var url = '/Areas/IMS/Reports/InventoryOutReport.aspx?FromDate=' + FromDate + '&ToDate=' + ToDate + '&CIID=' + CIID;
+            window.open(url, "_blank")
+
+        });
+    });
+</script>
+
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        راپور تفصیلی آمد مواد گدام
+        @*<input type="button" class="btn-success pull-left fonclass" id="AddNew" value="مصرف جدید" />*@
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <form id="stockInRPT">
+                <table class="table" dir="rtl" align="center">
+                    <tr>
+                        <td><b>تاریخ شروع</b></td>
+                        <td><input type="text" name="D_FromDate" id="D_FromDate" /></td>
+                        <td><b>تاریخ ختم</b></td>
+                        <td><input type="text" name="D_ToDate" id="D_ToDate" /></td>
+                        <td><b>جنس</b></td>
+                        <td><div id="Comb_CIID"></div></td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" style="text-align:center"><button id="genReport" type="button" class="fonclass btn-primary">ایجاد راپور</button></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        راپور تفصیلی مصرف مواد گدام
+        @*<input type="button" class="btn-success pull-left fonclass" id="AddNew" value="مصرف جدید" />*@
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <form id="stockOutRPT">
+                <table class="table" dir="rtl" align="center">
+                    <tr>
+                        <td><b>تاریخ شروع</b></td>
+                        <td><input type="text" name="D_FromDateOut" id="D_FromDateOut" /></td>
+                        <td><b>تاریخ ختم</b></td>
+                        <td><input type="text" name="D_ToDateOut" id="D_ToDateOut" /></td>
+                        <td><b>جنس</b></td>
+                        <td><div id="Comb_CIIDOut"></div></td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" style="text-align:center"><button id="genReportOut" type="button" class="fonclass btn-primary">ایجاد راپور</button></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>

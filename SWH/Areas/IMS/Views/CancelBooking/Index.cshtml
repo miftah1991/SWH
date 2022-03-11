@@ -1,0 +1,120 @@
+﻿@{
+    ViewBag.Title = "ExistStock";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<script type="text/javascript">
+    $(document).ready(function () {
+        setGridNonExpandable('CancelBooking');
+
+
+    });
+    function setGridNonExpandable(varGridName) {
+        var cellclassname = function (row, column, value, data) {
+            return "fonclass";
+        }
+        $("#" + varGridName).jqxGrid(
+            {
+                width: '99%',
+                theme: 'darkblue',
+                enabletooltips: true,
+                pageable: true,
+                pagermode: 'simple',
+                showfilterrow: true,
+                filterable: true,
+                editable: true,
+                editmode: 'click',
+                autoheight: true,
+                columnsresize: false,
+                sortable: true,
+                altrows: true,
+                rtl: true,
+                selectionmode: 'checkbox',
+                columns: [
+                        { text: 'تاریخ بوکنگ', dataField: 'DateDr', width: '8%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'تاریخ لغو', dataField: 'CancelDateDr', width: '8%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'دلیل', dataField: 'CancelReason', width: '27%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'مبلغ لغو', dataField: 'CancelAmount', width: '8%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'اسم مشتری', dataField: 'CustomerName', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'شماره تماس', dataField: 'CustomerMobile', width: '15%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'حال بوکنگ', dataField: 'BHName', width: '8%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+                        { text: 'تایم اول', dataField: 'ShiftName', width: '8%', cellsalign: 'right', align: 'right', cellclassname: cellclassname, editable: false },
+
+                ]
+
+            });
+        fillGridNonExpandable();
+    }
+    function fillGridNonExpandable() {
+        //alert(MID)
+        //alert(BookedGuest)
+        var URL = '/IMS/CancelBooking/GetCancelData';
+        var source =
+        {
+            datatype: "json",
+            datafields: [
+                    {name:'BCID'},
+                    {name:'BOOKINGID'},
+                    {name:'CancelDate'},
+                    {name:'CancelReason'},
+                    {name:'CancelAmount'},
+                    {name:'CancelAmountCID'},
+                    {name:'CancelAmountExchange'},
+                    {name:'Remarks'},
+                    {name:'MID'},
+                    {name:'Date'},
+                    {name:'CustomerName'},
+                    {name:'CustomerMobile'},
+                    {name:'CustomerEmail'},
+                    {name:'MenuPrice'},
+                    {name:'PrePaidAmount'},
+                    {name:'PrePaidExchangeRate'},
+                    {name:'PrePaidCurrencyID'},
+                    {name:'BookedGuest'},
+                    {name:'ActualGuest'},
+                    {name:'BookingNumber'},
+                    {name:'IsCanceled'},
+                    {name:'BookingRemarks'},
+                    {name:'CustSign'},
+                    {name:'BookingDate'},
+                    {name:'IsCleared'},
+                    {name:'BHID'},
+                    {name:'BHName'},
+                    {name:'ShiftName'},
+                    {name:'MenuName'},
+                    {name:'MenuUnitPrice'},
+                    {name:'CRID'},
+                    { name: 'CRName' },
+                    { name: 'CancelDateDr' },
+                    { name: 'DateDr' },
+                            
+            ],
+            cache: false,
+            url: URL,
+            root: 'Rows'
+        };
+
+        var dataadapter = new $.jqx.dataAdapter(source, {
+            loadError: function (xhr, status, error) {
+                console.log(error);
+            }
+        }
+        );
+
+        $('#CancelBooking').jqxGrid(
+        {
+            source: dataadapter
+        });
+    } 
+    
+</script>
+<div class="panel panel-success">
+    <div class="panel-heading" style="text-align:right;">
+        بوکنگ های لغوشده
+        @*<input type="button" class="btn-success pull-left fonclass" id="AddNew" value="مصرف جدید" />*@
+    </div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <div id="CancelBooking"></div>
+        </div>
+    </div>
+</div>
